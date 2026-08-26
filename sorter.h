@@ -53,9 +53,19 @@ int network_proof(const network_t *net);
 
 network_t *search_extension(const network_t *seed, size target_wires, size max_extra_layers);
 
+int run_proof_cmd(size target_wires, int have_target);
+int run_search_cmd(size target_wires, int have_target, size max_extra_layers);
+
 // internal helpers exposed for modular build (network.c -> sorter.c)
 int network_insert_empty_layer_pub(network_t *net, size pos);
 uint64_t bit_mask_pub(size pos);
 int cmp_pair_pub(const cmp_t *a, const cmp_t *b);
+
+#define HELP \
+  "usage:\n" \
+  "  sorter proof [wires]          read network and prove it (strict proof: n < 20)\n" \
+  "  sorter search [wires] [extra] read seed network and search extension, extra is capped at 1\n" \
+  "  limits: search supports n <= 64 (64-bit masks), proof_exp supports n < 20\n"
+
 
 #endif /* SORTER_H_ */

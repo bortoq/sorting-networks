@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "../sorter.h"
 #include <assert.h>
 #include <stdio.h>
@@ -9,7 +8,7 @@ static void test_network_new_free() {
   assert(n && n->wires==4 && n->cap==2);
   network_free(n);
   network_free(NULL);
-  assert(network_new(0,0) != NULL);
+  {network_t *tmp = network_new(0,0); assert(tmp != NULL); network_free(tmp);}
   printf("test_network_new_free: OK\n");
 }
 static void test_add_cmp_conflict() {

@@ -10,12 +10,6 @@ int network_insert_empty_layer_pub(network_t *net, size pos);
 uint64_t bit_mask_pub(size index);
 int cmp_pair_pub(const cmp_t *a, const cmp_t *b);
 
-#define HELP \
-  "usage:\n" \
-  "  sorter proof [wires]          read network and prove it (strict proof: n < 20)\n" \
-  "  sorter search [wires] [extra] read seed network and search extension, extra is capped at 1\n" \
-  "  limits: search supports n <= 64 (64-bit masks), proof_exp supports n < 20\n"
-
 typedef struct {
   cmp_t first;
   cmp_t second;
@@ -334,7 +328,7 @@ network_t *search_extension(const network_t *seed, size target_wires, size max_e
   return NULL;
 }
 
-static int run_proof_cmd(size target_wires, int have_target)
+int run_proof_cmd(size target_wires, int have_target)
 {
   network_t *net = network_load(stdin);
   int ok;
@@ -360,7 +354,7 @@ static int run_proof_cmd(size target_wires, int have_target)
   return ok ? 0 : 1;
 }
 
-static int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
+int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
 {
   network_t *seed = network_load(stdin);
   network_t *found;
@@ -398,41 +392,5 @@ static int run_search_cmd(size target_wires, int have_target, size max_extra_lay
     return 1;
   }
   network_free(found);
-  return 0;
-}
-
-int main(int argc, char **argv)
-{
-  const char *cmd = argc > 1 ? argv[1] : "help";
-
-  if(strcmp(cmd, "proof") == 0 || strcmp(cmd, "test") == 0)
-  {
-    size target = 0;
-    int have_target = 0;
-    if(argc > 2)
-    {
-      target = (size)strtoul(argv[2], NULL, 10);
-      have_target = 1;
-    }
-    return run_proof_cmd(target, have_target);
-  }
-
-  if(strcmp(cmd, "search") == 0 || strcmp(cmd, "bld") == 0)
-  {
-    size target = 0;
-    size extra = 1;
-    int have_target = 0;
-
-    if(argc > 2)
-    {
-      target = (size)strtoul(argv[2], NULL, 10);
-      have_target = 1;
-    }
-    if(argc > 3)
-      extra = (size)strtoul(argv[3], NULL, 10);
-    return run_search_cmd(target, have_target, extra);
-  }
-
-  fputs(HELP, stdout);
   return 0;
 }

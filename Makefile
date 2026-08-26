@@ -1,16 +1,15 @@
 CC ?= cc
-CFLAGS ?= -std=c11 -Wall -Wextra -pedantic
+CFLAGS ?= -std=c11 -Wall -Wextra -pedantic -D_GNU_SOURCE
 
 .PHONY: all clean test
 
 all: sorter sorter_exp layer_perm gen_network
 
-# modular: network + sorter (search) + proof
-sorter: network.c sorter.c proof.c sorter.h
-	$(CC) $(CFLAGS) network.c sorter.c proof.c -o sorter
+sorter: network.c search_lib.c main.c proof.c sorter.h
+	$(CC) $(CFLAGS) network.c search_lib.c main.c proof.c -o sorter
 
-sorter_exp: network.c sorter.c proof_exp.c sorter.h
-	$(CC) $(CFLAGS) network.c sorter.c proof_exp.c -o sorter_exp
+sorter_exp: network.c search_lib.c main.c proof_exp.c sorter.h
+	$(CC) $(CFLAGS) network.c search_lib.c main.c proof_exp.c -o sorter_exp
 
 layer_perm: layer_perm.c
 	$(CC) $(CFLAGS) -O2 layer_perm.c -o layer_perm
@@ -32,4 +31,4 @@ test-strict: sorter_exp
 	./tests/run.sh
 
 clean:
-	rm -f sorter sorter_exp layer_perm gen_network
+	rm -f sorter sorter_exp layer_perm gen_network /tmp/test_units /tmp/test_units_asan
