@@ -21,7 +21,7 @@ This repo's `known/n03-n16.txt` are depth/size efficient (not necessarily proven
 | 15| 56 | 9 | 56 | 9 | optimal* |
 | 16| 60 | 10 | 60 | 10 | optimal* |
 
-* For n=15,16 the optimal size/depth is known from exhaustive search (see Bundala, Codish). Our n16 has 60 comparators (10 layers) – matches Van Voorhis/optimal table. Some Batcher/van-voorhis generators produce 61/63 comparators for n=16, which is not optimal but within 5% depth-optimal.
+* For n=15,16 the optimal size/depth is known from exhaustive search (see Bundala, Codish). Our n16 has 60 comparators (10 layers) -- matches Van Voorhis/optimal table. Some Batcher/van-voorhis generators produce 61/63 comparators for n=16, which is not optimal but within 5% depth-optimal.
 
 ## How this repo searches
 
