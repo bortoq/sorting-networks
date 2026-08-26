@@ -43,7 +43,5 @@ jobs:
           echo "all generators verified"
 
       - name: -Werror check
-        run: make clean && make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -D_GNU_SOURCE -Werror" 2>&1 | tee build.log
+        run: make clean && make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -D_GNU_SOURCE -Werror"
 
-      - name: Check no -Werror warnings
-        run: test ! -s build.log || (cat build.log; false)
