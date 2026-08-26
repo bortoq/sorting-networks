@@ -224,12 +224,6 @@ int network_add_cmp(network_t *net, size layer_idx, size left, size right)
     return 0;
   if(left == right)
     return 1; // self-comparator is no-op, treat as success
-  if(left > right)
-  {
-    size tmp = left;
-    left = right;
-    right = tmp;
-  }
   while(net->layers <= layer_idx)
   {
     if(!network_append_layer(net))

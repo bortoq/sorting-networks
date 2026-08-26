@@ -31,4 +31,22 @@ Heuristic incremental search `n-1 -> n`:
 - packs orbits into existing layers first, then tries one fresh layer at each position
 - verifies with `proof_exp` (zero-one). Not exhaustive: `max_extra_layers=1`, only incident comparators, at most 64 wires (64-bit masks).
 
+
+## Best-known for 17..32 (suboptimal)
+
+`known/best/n17..32.txt` are best-known from Dobbelaere SorterHunter (not proven optimal).
+Only `n<=12` size optimal is proven (Harder 2020). For `13..32` only bounds are known.
+
+| n | best size | best depth | source |
+|---|-----------|------------|--------|
+|17|71|12|Dobbelaere|
+|18|77|12|Dobbelaere|
+|19|85|12|Dobbelaere|
+|20|91|12|Dobbelaere|
+|24|120|13|Dobbelaere|
+|28|155|14|Dobbelaere|
+|32|185|14|Dobbelaere|
+
+See `known/best/README.md` and https://bertdobbelaere.github.io/sorting_networks.html
+
 For full optimality proof use external verifiers / SAT encoding (not included).

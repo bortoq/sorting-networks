@@ -28,6 +28,11 @@
  *      For n=65536: 3907497 comps, 136 layers.
  *      Our implementation follows Knuth's square scheme.
  *
+ *   5) Bose-Nelson (1962): any n, recursive Pbracket/Pstar
+ *   6) Bitonic mergesort: power of two, ascending/descending bitonic merge
+ *   7) Brick (odd-even transposition): any n, n layers periodic
+ *   8) Green filter (1969): n=16 filter (4 layers) truncated/padded else
+ *
  * Output format: one comparator "i j" per line, blank line between layers.
  * Refs: Batcher 1968 "Sorting Networks...", Van Voorhis 1971, Knuth 5.3.4
  */
@@ -139,13 +144,6 @@ static void layer_add(layer_t *layer, unsigned left, unsigned right)
 
   if(left == right)
     return;
-  if(left > right)
-  {
-    unsigned tmp = left;
-    left = right;
-    right = tmp;
-  }
-
   if(layer->count == layer->cap)
   {
     unsigned cap = layer->cap ? layer->cap * 2 : 8;
@@ -156,6 +154,22 @@ static void layer_add(layer_t *layer, unsigned left, unsigned right)
     layer->cap = cap;
   }
 
+  layer->pair[layer->count].left = left;
+  layer->pair[layer->count].right = right;
+  ++layer->count;
+}
+
+static void layer_add_directed(layer_t *layer, unsigned left, unsigned right)
+{
+  // Do not normalize, keep direction
+  if(left == right) return;
+  pair_t *pair;
+  if(layer->count == layer->cap){
+    unsigned cap = layer->cap ? layer->cap * 2 : 8;
+    pair = realloc(layer->pair, cap * sizeof *pair);
+    if(pair == NULL) die("cannot allocate comparators");
+    layer->pair = pair; layer->cap = cap;
+  }
   layer->pair[layer->count].left = left;
   layer->pair[layer->count].right = right;
   ++layer->count;
@@ -196,10 +210,31 @@ static void seq_add(seq_t *seq, unsigned left, unsigned right)
   ++seq->count;
 }
 
+static void seq_add_directed(seq_t *seq, unsigned left, unsigned right)
+{
+  // For bitonic: keep direction (left gets min), do not normalize
+  if(left == right) return;
+  pair_t *pair;
+  if(seq->count == seq->cap){
+    unsigned cap = seq->cap ? seq->cap * 2 : 1024;
+    pair = realloc(seq->pair, cap * sizeof *pair);
+    if(pair == NULL) die("cannot allocate comparator sequence");
+    seq->pair = pair; seq->cap = cap;
+  }
+  seq->pair[seq->count].left = left;
+  seq->pair[seq->count].right = right;
+  ++seq->count;
+}
+
 static void net_add(net_t *net, unsigned layer, unsigned left, unsigned right)
 {
   net_ensure_layer(net, layer);
   layer_add(&net->layer[layer], left, right);
+}
+static void net_add_directed(net_t *net, unsigned layer, unsigned left, unsigned right)
+{
+  net_ensure_layer(net, layer);
+  layer_add_directed(&net->layer[layer], left, right);
 }
 
 static void net_append_layer(net_t *dst, const layer_t *src)
@@ -292,6 +327,20 @@ static net_t seq_pack(const seq_t *seq, unsigned wires)
 
   free(ready);
   return out;
+}
+
+static net_t seq_pack_directed(const seq_t *seq, unsigned wires)
+{
+  net_t out={0,0,NULL};
+  unsigned *ready=calloc(wires,sizeof *ready);
+  if(!ready) die("cannot allocate readiness");
+  for(unsigned i=0;i<seq->count;++i){
+    unsigned left=seq->pair[i].left, right=seq->pair[i].right;
+    unsigned layer = ready[left] > ready[right] ? ready[left] : ready[right];
+    net_add_directed(&out, layer, left, right);
+    ready[left]=ready[right]=layer+1;
+  }
+  free(ready); return out;
 }
 
 static unsigned *map_subset(const unsigned *map, unsigned rows, unsigned cols,
@@ -612,6 +661,100 @@ static net_t gen_pairwise(unsigned n)
   return out;
 }
 
+// --- Bose-Nelson (1962) -------------------------------------------------
+static void bose_pbracket(seq_t *seq, unsigned i, unsigned x, unsigned j, unsigned y){
+  if(x==1 && y==1) seq_add(seq, i, j);
+  else if(x==1 && y==2){ seq_add(seq, i, j+1); seq_add(seq, i, j); }
+  else if(x==2 && y==1){ seq_add(seq, i, j); seq_add(seq, i+1, j); }
+  else {
+    unsigned a = x/2;
+    unsigned b = (x & 1) ? (y/2) : ((y+1)/2);
+    bose_pbracket(seq, i, a, j, b);
+    bose_pbracket(seq, i+a, x-a, j+b, y-b);
+    bose_pbracket(seq, i+a, x-a, j, b);
+  }
+}
+static void bose_pstar(seq_t *seq, unsigned i, unsigned m){
+  if(m <= 1) return;
+  unsigned a = m/2;
+  bose_pstar(seq, i, a);
+  bose_pstar(seq, i+a, m-a);
+  bose_pbracket(seq, i, a, i+a, m-a);
+}
+static net_t gen_bose_nelson(unsigned n){
+  seq_t seq={0,0,NULL};
+  bose_pstar(&seq, 0, n);
+  net_t out = seq_pack(&seq, n);
+  seq_free(&seq);
+  return out;
+}
+// --- Bitonic mergesort (Batcher second) ---------------------------------
+static void bitonic_merge(seq_t *seq, unsigned lo, unsigned n, int dir){
+  if(n <= 1) return;
+  unsigned k = n/2;
+  for(unsigned i=lo; i<lo+k; ++i){
+    if(dir) seq_add_directed(seq, i, i+k); // ascending: min->i
+    else seq_add_directed(seq, i+k, i); // descending: min->i+k
+  }
+  bitonic_merge(seq, lo, k, dir);
+  bitonic_merge(seq, lo+k, k, dir);
+}
+static void bitonic_sort_rec(seq_t *seq, unsigned lo, unsigned n, int dir){
+  if(n <= 1) return;
+  unsigned k = n/2;
+  bitonic_sort_rec(seq, lo, k, dir);
+  bitonic_sort_rec(seq, lo+k, k, dir ^ 1);
+  bitonic_merge(seq, lo, n, dir);
+}
+static net_t gen_bitonic(unsigned n){
+  if(!is_power2(n)) die("bitonic requires n to be a power of two");
+  seq_t seq={0,0,NULL};
+  bitonic_sort_rec(&seq, 0, n, 1);
+  net_t out = seq_pack_directed(&seq, n);
+  seq_free(&seq);
+  return out;
+}
+// --- Brick / Odd-Even Transposition (periodic) ----------------------------
+static net_t gen_brick(unsigned n){
+  net_t out={0,0,NULL};
+  if(n < 2) return out;
+  for(unsigned layer=0; layer<n; ++layer){
+    unsigned start = (layer % 2 == 0) ? 0 : 1;
+    for(unsigned i=start; i+1<n; i+=2) net_add(&out, layer, i, i+1);
+  }
+  return out;
+}
+// --- Green filter (Green 1969) for n=16 ----------------------------------
+static const pair_t green16[4][8] = {
+  {{0,5},{1,4},{2,12},{3,13},{6,7},{8,9},{10,15},{11,14}},
+  {{0,2},{1,10},{3,6},{4,7},{5,14},{8,11},{9,12},{13,15}},
+  {{0,8},{1,3},{2,11},{4,13},{5,9},{6,10},{7,15},{12,14}},
+  {{0,1},{2,4},{3,8},{5,6},{7,12},{9,10},{11,13},{14,15}}
+};
+static net_t gen_green(unsigned n){
+  net_t out={0,0,NULL};
+  if(n==16){
+    for(unsigned l=0;l<4;++l) for(unsigned k=0;k<8;++k) net_add(&out, l, green16[l][k].left, green16[l][k].right);
+    return out;
+  }
+  if(n < 16){
+    net_t g16 = gen_green(16);
+    seq_t f={0,0,NULL};
+    for(unsigned l=0;l<g16.layers;++l) for(unsigned k=0;k<g16.layer[l].count;++k){
+      unsigned a=g16.layer[l].pair[k].left, b=g16.layer[l].pair[k].right;
+      if(a < n && b < n) seq_add(&f,a,b);
+    }
+    net_free(&g16);
+    out = seq_pack(&f, n);
+    seq_free(&f);
+    return out;
+  }
+  seq_t f={0,0,NULL};
+  for(unsigned l=0;l<4;++l) for(unsigned k=0;k<8;++k) seq_add(&f, green16[l][k].left, green16[l][k].right);
+  out = seq_pack(&f, n);
+  seq_free(&f);
+  return out;
+}
 static unsigned next_vv_size(unsigned n)
 {
   unsigned p = 16;
@@ -682,7 +825,7 @@ static int validate_network(const net_t *net, unsigned n)
 
 static void usage(const char *argv0)
 {
-  fprintf(stderr, "usage: %s [--count|--validate] pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis n\n", argv0);
+  fprintf(stderr, "usage: %s [--count|--validate] pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis|bose-nelson|bitonic|brick|green n\n", argv0);
 }
 
 int main(int argc, char **argv)
@@ -723,6 +866,14 @@ int main(int argc, char **argv)
     net = gen_pipelined_mergesort(n);
   else if(strcmp(algo, "van-voorhis") == 0 || strcmp(algo, "vv") == 0)
     net = gen_van_voorhis(n);
+  else if(strcmp(algo, "bose-nelson") == 0 || strcmp(algo, "bose") == 0)
+    net = gen_bose_nelson(n);
+  else if(strcmp(algo, "bitonic") == 0)
+    net = gen_bitonic(n);
+  else if(strcmp(algo, "brick") == 0)
+    net = gen_brick(n);
+  else if(strcmp(algo, "green") == 0)
+    net = gen_green(n);
   else
   {
     usage(argv[0]);

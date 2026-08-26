@@ -71,9 +71,13 @@ Take an optimal network for `n-1`, extend to `n`:
 ```sh
 ./gen_network --count pairwise 16              # prints "comparators layers"
 ./gen_network pairwise 16 > net.txt            # 63 comparators, 10 layers
-./gen_network batcher-odd-even 16 > net.txt    # Batcher (power of two)
-./gen_network pipelined-mergesort 16 > net.txt # pipelined merge stages
-./gen_network van-voorhis 16 > net.txt         # Van Voorhis square, n=2^(2^k)
+./gen_network batcher-odd-even 16 > net.txt    # Batcher (power of two, padded)
+./gen_network pipelined-mergesort 16 > net.txt # pipelined (14 layers, staged)
+./gen_network bitonic 16 > net.txt             # Bitonic (80 comps, 10 layers)
+./gen_network bose-nelson 16 > net.txt         # Bose-Nelson (65 comps, any n)
+./gen_network brick 16 > net.txt               # Brick transposition (120 comps, 16 layers)
+./gen_network green 16 > net.txt               # Green filter (32 comps, 4 layers, not full sort)
+./gen_network van-voorhis 16 > net.txt         # Van Voorhis square, n=2^(2^k), padded
 ./gen_network van-voorhis 65536 --count        # 3907497 comparators, 136 layers
 
 # verify
@@ -81,8 +85,10 @@ Take an optimal network for `n-1`, extend to `n`:
 ```
 
 Limits:
-- `pairwise`, `batcher-odd-even`, `pipelined-mergesort`: `n = 2^k`
-- `van-voorhis`: `n = 2^(2^k)` (16, 256, 65536, ...)
+- `pairwise`, `batcher-odd-even`, `pipelined-mergesort`, `bitonic`: `n = 2^k` (padded to any `n`)
+- `bose-nelson`, `brick`: any `n`
+- `green`: `n = 16` filter (truncated/padded else, 4 layers, not a full sorter)
+- `van-voorhis`: `n = 2^(2^k)` (16, 256, 65536, padded to any `n` via truncation)
 
 ### 4. Analyze layer permutations
 
@@ -117,6 +123,8 @@ Counts how many permutations of layers break the network:
 
 All match known optimum size/depth (Knuth 5.3.4, Codish et al.). See [docs/optimality.md](docs/optimality.md) for details.
 
+`known/best/n17..32.txt` -- best-known (suboptimal, not proven optimal) from Dobbelaere SorterHunter (extended up to 64). Imported as reference, not proven minimal.
+
 > Note: generators (`pairwise 16` = 63 comps/10 layers, `van-voorhis 16` = 61/10) are not optimal -- they are classical constructions for comparison.
 
 ## Design
@@ -126,7 +134,7 @@ All match known optimum size/depth (Knuth 5.3.4, Codish et al.). See [docs/optim
 - `sorter.c` -- loader, layer packing, orbit enumeration, backtracking search
 - `proof.c` -- fast heuristic proof (anti-sorted + rotate)
 - `proof_exp.c` -- strict zero-one proof (`2^n` exhaustive, `n < 20`)
-- `gen_network.c` -- generators + sequence-to-layers packer (wire-ready table)
+- `gen_network.c` -- 8 generators (pairwise, Batcher, pipelined, bitonic, Bose-Nelson, brick, Green, Van Voorhis) + packer
 - `layer_perm.c` -- permutation robustness checker
 
 Symmetry: comparator `a b` is added with its mirror `n-1-b n-1-a`. Self-mirrored comparators count as one. Search works on *orbits*, not individual pairs.
