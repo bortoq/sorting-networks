@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CC
+        run: cc --version
+
+      - name: Build (pedantic C11)
+        run: make all
+
+      - name: Strict proof on known networks
+        run: make test
+
+      - name: Verify generators proof_exp
+        run: |
+          ./gen_network pairwise 16 > /tmp/pairwise16.txt
+          ./sorter_exp proof 16 < /tmp/pairwise16.txt
+          ./gen_network batcher-odd-even 16 > /tmp/batcher16.txt
+          ./sorter_exp proof 16 < /tmp/batcher16.txt
+          ./gen_network van-voorhis 16 > /tmp/vv16.txt
+          ./sorter_exp proof 16 < /tmp/vv16.txt
+          echo "all generators verified"
+
+      - name: Check no warnings on -Wall -Wextra -pedantic
+        run: |
+          make clean
+          make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -Werror" 2>&1 | tee build.log
+          test ! -s build.log || cat build.log

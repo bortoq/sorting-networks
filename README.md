@@ -1,5 +1,8 @@
 # sorting-networks
 
+[![CI](https://github.com/bortoq/sorting-networks/actions/workflows/ci.yml/badge.svg)](https://github.com/bortoq/sorting-networks/actions/workflows/ci.yml)
+
+
 Search and generation of optimal and near-optimal sorting networks.
 
 - **Incremental symmetric search** `n-1 -> n`: insert a new wire, try symmetric comparator orbits, pack into existing layers first, then add one new layer, verify with a proof.
