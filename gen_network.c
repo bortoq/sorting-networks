@@ -13,8 +13,10 @@
  *      Depth O(log^2 n), size O(n log^2 n). Reference implementation for
  *      comparison, not worst-case optimal but practical.
  *
- *   3) Pipelined mergesort: currently alias to Batcher (same comparators
- *      and layers). Intended to expose staged pipeline, TODO. Power-of-two only.
+ *   3) Pipelined mergesort: same comparators as Batcher, but inserts
+ *      a pipeline register (empty layer) between sort and merge stages.
+ *      Slightly deeper (16:14 vs 10, 32:20 vs 15) but pipeline-friendly.
+ *      Power-of-two only (padded else).
  *
  *   4) Van Voorhis square (Van Voorhis 1971, Lee 1986): n = 2^(2^k) only
  *      (16,256,65536..). Recursive square decomposition:
@@ -502,12 +504,50 @@ static net_t gen_batcher_odd_even(unsigned n)
   return gen_batcher_sort_rec(0, n);
 }
 
+static net_t gen_pipelined_merge(unsigned lo, unsigned n, unsigned r)
+{
+  unsigned m = r * 2;
+  net_t out = {0, 0, NULL};
+  if(m < n){
+    net_t a = gen_pipelined_merge(lo, n, m);
+    net_t b = gen_pipelined_merge(lo + r, n, m);
+    net_t p = net_parallel(&a, &b);
+    unsigned i;
+    net_concat(&out, &p);
+    net_free(&p);
+    net_ensure_layer(&out, out.layers);
+    for(i = lo + r; i + r < lo + n; i += m)
+      layer_add(&out.layer[out.layers - 1], i, i + r);
+  } else {
+    net_add(&out, 0, lo, lo + r);
+  }
+  return out;
+}
+
+static net_t gen_pipelined_sort_rec(unsigned lo, unsigned n)
+{
+  net_t out = {0, 0, NULL};
+  if(n <= 1) return out;
+  {
+    net_t a = gen_pipelined_sort_rec(lo, n / 2);
+    net_t b = gen_pipelined_sort_rec(lo + n / 2, n / 2);
+    net_t p = net_parallel(&a, &b);
+    net_t m = gen_pipelined_merge(lo, n, 1);
+    net_concat(&out, &p);
+    // Pipeline register: one idle layer between sort and merge stages
+    net_ensure_layer(&out, out.layers);
+    net_concat(&out, &m);
+    net_free(&p);
+    net_free(&m);
+  }
+  return out;
+}
+
 static net_t gen_pipelined_mergesort(unsigned n)
 {
-  // NOTE: currently identical to Batcher odd-even (staged merge TODO).
   if(!is_power2(n)){
     unsigned padded = next_pow2(n);
-    net_t pn = gen_batcher_sort_rec(0, padded);
+    net_t pn = gen_pipelined_sort_rec(0, padded);
     seq_t f={0,0,NULL};
     for(unsigned l=0;l<pn.layers;++l) for(unsigned k=0;k<pn.layer[l].count;++k){
       unsigned a=pn.layer[l].pair[k].left, b=pn.layer[l].pair[k].right;
@@ -518,7 +558,7 @@ static net_t gen_pipelined_mergesort(unsigned n)
     seq_free(&f);
     return out;
   }
-  return gen_batcher_sort_rec(0, n);
+  return gen_pipelined_sort_rec(0, n);
 }
 
 static net_t gen_pairwise(unsigned n)
