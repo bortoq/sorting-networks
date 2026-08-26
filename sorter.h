@@ -2,6 +2,14 @@
  * sorting network helpers
  *
  * copyright 2024-10-31, dmitri bortoq, mit license
+ *
+ * Module layout:
+ *   network.c     - core storage/I/O/matching (network_t, layer_t)
+ *   search_lib.c  - symmetric search (orbits, DFS packing)
+ *   main.c        - CLI (proof/search)
+ *   proof.c       - heuristic proof, proof_exp.c - strict zero-one
+ *   gen_network.c - Batcher/pairwise/Van Voorhis generators
+ *   layer_perm.c  - permutation tester (standalone)
  */
 #ifndef SORTER_H_
 #define SORTER_H_

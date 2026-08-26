@@ -1,9 +1,34 @@
 /*
- * Sorting network generators.
+ * Sorting network generators - classical constructions + packing
  *
- * Output format:
- *   one comparator "i j" per line
- *   empty line between layers
+ * Theory:
+ *   Four algorithms, all produce comparators as sequence then pack into
+ *   layers via wire-ready table (ready[w] = next free layer for wire w):
+ *
+ *   1) Pairwise (pairwise sorting network): power-of-two only (n=2^k),
+ *      recursively sort pairs and merge. Simple but not depth-optimal.
+ *
+ *   2) Batcher odd-even mergesort (Batcher 1968): power-of-two only.
+ *      Recursively sort halves, then odd-even merge with stride r.
+ *      Depth O(log^2 n), size O(n log^2 n). Reference implementation for
+ *      comparison, not worst-case optimal but practical.
+ *
+ *   3) Pipelined mergesort: same odd-even merge block as Batcher, but
+ *      expose pipeline stages (static merge-sort network with staged merges).
+ *      Power-of-two only, more layers than Batcher due to staging.
+ *
+ *   4) Van Voorhis square (Van Voorhis 1971, Lee 1986): n = 2^(2^k) only
+ *      (16,256,65536..). Recursive square decomposition:
+ *        - sort rows (r = sqrt(n), r networks)
+ *        - sort columns (r networks)
+ *        - f-network: economical [2^r,2^r] merger (uses gen_batcher_merge)
+ *        - pack comparator sequence into layers via ready[].
+ *      For n=16: 61 comparators, 10 layers (depth-optimal).
+ *      For n=65536: 3907497 comps, 136 layers.
+ *      Our implementation follows Knuth's square scheme.
+ *
+ * Output format: one comparator "i j" per line, blank line between layers.
+ * Refs: Batcher 1968 "Sorting Networks...", Van Voorhis 1971, Knuth 5.3.4
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -239,6 +264,7 @@ static net_t seq_pack(const seq_t *seq, unsigned wires)
   unsigned *ready;
   unsigned i;
 
+  // ready[w] = earliest layer where wire w is free (greedy layer packing)
   ready = calloc(wires, sizeof *ready);
   if(ready == NULL)
     die("cannot allocate wire readiness table");
@@ -247,7 +273,7 @@ static net_t seq_pack(const seq_t *seq, unsigned wires)
   {
     unsigned left = seq->pair[i].left;
     unsigned right = seq->pair[i].right;
-    unsigned layer = ready[left] > ready[right] ? ready[left] : ready[right];
+    unsigned layer = ready[left] > ready[right] ? ready[left] : ready[right]; // earliest layer where both wires free
 
     net_add(&out, layer, left, right);
     ready[left] = layer + 1;

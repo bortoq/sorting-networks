@@ -1,5 +1,17 @@
 /*
- * sorter proover routines
+ * heuristic sorting network proof - anti-sorted + rotations
+ *
+ * Theory:
+ *   Fast unsound filter: build anti-sorted array [n,..,1], run network,
+ *   check is_ordered, rotate array by 1 and repeat n times. Catches many
+ *   broken networks quickly but MISSES some: not all permutations tested,
+ *   does not imply correctness (see docs/optimality.md).
+ *   Use sorter_exp (zero-one) for sound verification.
+ *
+ *   Complexity: O(n * size) vs O(2^n * size) for strict proof.
+ *
+ *   This file exists only for speed during search; search still calls
+ *   network_proof which may be linked to either proof.c or proof_exp.c.
  */
 #include "sorter.h"
 

@@ -1,5 +1,28 @@
 /*
  * sorting network core - storage, I/O, comparators
+ *
+ * Theory:
+ *   Sorting network = fixed sequence of comparators (i,j) grouped into
+ *   layers. Within a layer comparators are parallel: no wire appears
+ *   twice. Depth = number of layers, size = total comparators.
+ *   Network sorts if for every input it outputs sorted sequence.
+ *
+ * File format (also in README):
+ *   "i j" per line, blank line = next layer, "#" comment, wires 0-based.
+ *   Example n=4 depth 3:
+ *     0 1       <- layer 0 (two disjoint comparators in parallel)
+ *     2 3
+ *
+ *     0 2       <- layer 1
+ *     1 3
+ *
+ *     1 2       <- layer 2
+ *
+ * Invariants:
+ *   - layer is a matching (wire appears at most once)
+ *   - network.wires is max wire index+1, auto-grown on add
+ *
+ * Refs: Knuth TAOCP 5.3.4, Batcher 1968
  */
 #include "sorter.h"
 #include <string.h>
@@ -146,6 +169,7 @@ static int cmp_pair(const cmp_t *a, const cmp_t *b)
 
 static uint64_t bit_mask(size index)
 {
+  // 64-bit layer occupancy mask; n>64 returns 0 (guarded by caller)
   if(index >= 64)
     return 0;
   return 1ULL << index;
@@ -199,7 +223,7 @@ int network_add_cmp(network_t *net, size layer_idx, size left, size right)
   if(net == NULL)
     return 0;
   if(left == right)
-    return 1;
+    return 1; // self-comparator is no-op, treat as success
   if(left > right)
   {
     size tmp = left;
@@ -212,9 +236,10 @@ int network_add_cmp(network_t *net, size layer_idx, size left, size right)
       return 0;
   }
   layer = &net->layer[layer_idx];
+  // Enforce matching: reject if comparator shares a wire with this layer
   for(i = 0; i < layer->count; ++i)
     if(layer->pairs[i].left == left || layer->pairs[i].left == right || layer->pairs[i].right == left || layer->pairs[i].right == right)
-      return 0;
+      return 0; // wire already used in this layer
   if(layer->count == layer->cap && !layer_reserve(layer, layer->cap ? layer->cap * 2 : 4))
     return 0;
   layer->pairs[layer->count].left = left;
@@ -241,7 +266,7 @@ int network_insert_wire(network_t *net, size pos)
       if(cmp->right >= pos)
         ++cmp->right;
     }
-  ++net->wires;
+  ++net->wires; // inserted wire shifts existing comparators >= pos
   return 1;
 }
 
@@ -304,6 +329,7 @@ network_t *network_load(FILE *in)
     }
     if(!active)
     {
+      // blank line ended previous layer; start new layer
       if(!network_append_layer(net))
       {
         network_free(net);

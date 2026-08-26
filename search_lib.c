@@ -1,5 +1,33 @@
 /*
- * sorting network search - orbit enumeration and backtracking
+ * sorting network search - symmetric incremental extension n-1 -> n
+ *
+ * Theory:
+ *   Empirical: near-optimal networks are almost symmetric. We exploit this
+ *   to prune search. Take optimal network for n-1, insert new wire at
+ *   each position p (0..n-1). Its mirror is m = n-1-p.
+ *   Comparator (a,b) must appear with mirror (n-1-b, n-1-a) as one orbit
+ *   (1 comparator if self-mirrored, else 2). Enumerate only orbits incident
+ *   to p or m, sort by distance to p, DFS-pack into existing layers first,
+ *   then try one fresh empty layer at each insertion point. Verify with
+ *   proof after each full placement.
+ *
+ * Diagram n=7, p=2 (m=4), orbit {0,2} <-> {4,6}:
+ *
+ *   wires: 0 1 2 3 4 5 6   (p=2)
+ *   mirror:6 5 4 3 2 1 0   (m=4)
+ *   orbit :  0-2  <->  4-6   added together
+ *            self-mirrored: {3,3}? no, {1,5} is self-mirrored? 1<->5
+ *
+ * Search order:
+ *   try extra=0 (pack into existing layers) for all p,
+ *   then extra=1 (one new layer at each layer_pos)
+ *   backtrack: place orbit -> recurse -> unplace
+ *
+ * Limits: n <= 64 (uint64_t masks), max_extra_layers=1 (capped),
+ *   only incident comparators -> heuristic, not exhaustive.
+ *   Verification: proof_exp.c (zero-one) or proof.c (heuristic).
+ *
+ * Refs: Codish et al. "Sorting Networks: to the End Game", Bundala-Codish
  */
 #include "sorter.h"
 #include <string.h>
@@ -20,6 +48,8 @@ typedef struct {
 
 static unsigned orbit_score(size wires, size pivot, const orbit_t *orbit)
 {
+  // Heuristic: prefer orbits close to pivot (short wires), so DFS finds packing early
+
   unsigned score = 0;
   size i;
 
@@ -70,7 +100,7 @@ static int orbit_make(size wires, size pivot, size left, size right, orbit_t *or
   }
 
   if(!(left == pivot || right == pivot || left == mirror || right == mirror))
-    return 0;
+    return 0; // orbit must touch inserted wire or its mirror
 
   a.left = left;
   a.right = right;
@@ -78,7 +108,7 @@ static int orbit_make(size wires, size pivot, size left, size right, orbit_t *or
   b.right = (size)(wires - 1 - left);
 
   if(cmp_pair_pub(&a, &b) > 0)
-    return 0;
+    return 0; // canonical: only keep one of mirror pair (a <= b) to avoid duplicates
 
   mask |= bit_mask_pub(a.left);
   mask |= bit_mask_pub(a.right);
@@ -113,7 +143,7 @@ static orbit_t *build_orbits(const network_t *net, size pivot, size *count)
         continue;
       if(network_has_cmp(net, orbit.first.left, orbit.first.right) &&
          (orbit.count == 1 || network_has_cmp(net, orbit.second.left, orbit.second.right)))
-        continue;
+        continue; // already present in network, skip
       list[n++] = orbit;
     }
 
@@ -175,7 +205,7 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
   size layer;
 
   if(network_proof(work))
-    return 1;
+    return 1; // early success: current partial placement already sorts
 
   if(idx >= cand_count)
     return 0;
@@ -188,7 +218,7 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
       uint64_t mask = bit_mask_pub(cand[idx].first.left) | bit_mask_pub(cand[idx].first.right);
 
       if(masks[layer] & mask)
-        continue;
+        continue; // wire already occupied in this layer
       added = orbit_place(work, layer, &cand[idx]);
       if(added == 0)
         continue;

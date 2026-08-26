@@ -1,5 +1,20 @@
 /*
- * Count layer permutations that break a sorting network.
+ * Layer permutation robustness analyzer
+ *
+ * Theory:
+ *   Question: how many permutations of layers still sort? For a network
+ *   with L layers, test all L! permutations: apply layers in permuted order
+ *   to all 2^n binary inputs (zero-one). Count permutations that break
+ *   sorting (at least one binary input not sorted).
+ *
+ *   Example: known/n08.txt (6 layers, 19 comps) -> 720 perms, 704 break,
+ *   only 16 permutations still sort (reported as "8 6 720 16 704").
+ *   This measures how order-sensitive the network is.
+ *
+ *   Limits: MAX_WIRES 20, MAX_LAYERS 16, MAX_PAIRS 16 (exhaustive fits).
+ *   Brute force L! * 2^n, so practical only for small n/L.
+ *
+ *   Use: ./layer_perm < network.txt
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -126,13 +141,14 @@ static int sorted_mask(uint32_t mask, unsigned wires)
 }
 
 static int permutation_sorts(const network_t *net, const unsigned *perm)
+/* test if permuted layer order still sorts (zero-one over 2^n inputs) */
 {
   uint32_t limit = 1u << net->wires;
   uint32_t input;
 
-  for(input = 0; input < limit; ++input)
+  for(input = 0; input < limit; ++input) // 2^n binary inputs
   {
-    uint32_t mask = input;
+    uint32_t mask = input; // input bits are binary array
     unsigned i;
 
     for(i = 0; i < net->layers; ++i)
