@@ -1,4 +1,4 @@
-#include "../sorter.h"
+#include "sorter.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
