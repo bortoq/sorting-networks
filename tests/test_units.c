@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "../sorter.h"
 #include <assert.h>
 #include <stdio.h>

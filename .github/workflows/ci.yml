@@ -24,10 +24,10 @@ jobs:
         run: make all
 
       - name: Unit tests
-        run: cc -std=c11 -Wall -Wextra -pedantic network.c tests/test_units.c proof_exp.c -o /tmp/test_units && /tmp/test_units
+        run: cc -std=c11 -Wall -Wextra -pedantic network.c sorter.c tests/test_units.c proof_exp.c -o /tmp/test_units && /tmp/test_units
 
       - name: Unit tests + ASAN/UBSAN
-        run: cc -std=c11 -Wall -Wextra -pedantic -fsanitize=address,undefined network.c tests/test_units.c proof_exp.c -o /tmp/test_units_asan && /tmp/test_units_asan
+        run: cc -std=c11 -Wall -Wextra -pedantic -fsanitize=address,undefined network.c sorter.c tests/test_units.c proof_exp.c -o /tmp/test_units_asan && /tmp/test_units_asan
 
       - name: Strict proof on known networks
         run: make test
