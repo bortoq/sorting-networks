@@ -1,0 +1,117 @@
+/*
+ * sorter proover routines
+ */
+#include "sorter.h"
+
+/*
+ * create array and populate it with anti-ordered position indices.
+ * return pointer to array.
+ * NOTE: malloc()
+ */
+static size *array_generator(size n)
+{
+  size i;
+  size *a = malloc(n * sizeof *a);
+
+  if(a == NULL)
+    return NULL;
+
+  for(i = 0; i < n; ++i)
+    a[i] = n - i;
+
+  return a;
+}
+
+/*
+ * return 0 if array a is not ordered
+ */
+static int is_ordered(size n, const size *a)
+{
+  size i;
+
+  for(i = 1; i < n; ++i)
+    if(a[i - 1] > a[i])
+      return 0;
+  return 1;
+}
+
+/*
+ * cycle shift array 1 position toward the last position
+ */
+static void shift_array(size n, size *a)
+{
+  size i;
+  size tmp;
+
+  if(n == 0)
+    return;
+
+  tmp = a[n - 1];
+  for(i = n - 1; i > 0; --i)
+    a[i] = a[i - 1];
+  a[0] = tmp;
+}
+
+/*
+ * sort array using sorting network
+ */
+int network_sort(const network_t *net, size *data)
+{
+  size l;
+  size n;
+
+  if(net == NULL || data == NULL)
+    return 0;
+
+  for(l = 0; l < net->layers; ++l)
+  {
+    const layer_t *layer = &net->layer[l];
+    for(n = 0; n < layer->count; ++n)
+    {
+      size left = layer->pairs[n].left;
+      size right = layer->pairs[n].right;
+
+      if(left >= net->wires || right >= net->wires)
+        return 0;
+
+      if(left != right && data[left] > data[right])
+      {
+        size tmp = data[left];
+        data[left] = data[right];
+        data[right] = tmp;
+      }
+    }
+  }
+
+  return 1;
+}
+
+/*
+ * full test of sorter: all pathes from any position to any other should exist.
+ * return 0 if test failed.
+ */
+int network_proof(const network_t *net)
+{
+  size i;
+  int ok = 1;
+  size *a;
+
+  if(net == NULL)
+    return 0;
+
+  a = array_generator(net->wires);
+  if(a == NULL && net->wires != 0)
+    return 0;
+
+  for(i = 0; i < net->wires; ++i)
+  {
+    ok = network_sort(net, a) && is_ordered(net->wires, a);
+    if(ok == 0)
+      break;
+
+    shift_array(net->wires, a);
+  }
+
+  free(a);
+  return ok;
+}
