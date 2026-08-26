@@ -93,7 +93,7 @@ Counts how many permutations of layers break the network:
 
 ## Known optimal networks
 
-`known/n03.txt` .. `known/n16.txt` — reference networks (verified with `proof_exp.c`).
+`known/n03.txt` .. `known/n16.txt` -- reference networks (verified with `proof_exp.c`).
 
 | n | comparators | layers |
 |---|-------------|--------|
@@ -106,24 +106,24 @@ Counts how many permutations of layers break the network:
 
 ## Design
 
-- `sorter.h` — network structure (`network_t`, `layer_t`, `cmp_t`), API:
+- `sorter.h` -- network structure (`network_t`, `layer_t`, `cmp_t`), API:
   `network_new/clone/free`, `network_add_cmp`, `network_insert_wire`, `network_load/write`, `network_sort`, `network_proof`, `search_extension`
-- `sorter.c` — loader, layer packing, orbit enumeration, backtracking search
-- `proof.c` — fast heuristic proof (anti-sorted + rotate)
-- `proof_exp.c` — strict zero-one proof (`2^n` exhaustive, `n < 20`)
-- `gen_network.c` — generators + sequence-to-layers packer (wire-ready table)
-- `layer_perm.c` — permutation robustness checker
+- `sorter.c` -- loader, layer packing, orbit enumeration, backtracking search
+- `proof.c` -- fast heuristic proof (anti-sorted + rotate)
+- `proof_exp.c` -- strict zero-one proof (`2^n` exhaustive, `n < 20`)
+- `gen_network.c` -- generators + sequence-to-layers packer (wire-ready table)
+- `layer_perm.c` -- permutation robustness checker
 
 Symmetry: comparator `a b` is added with its mirror `n-1-b n-1-a`. Self-mirrored comparators count as one. Search works on *orbits*, not individual pairs.
 
 ## Limitations
 
-- `proof.c` is **not sound** — only a fast filter. Use `sorter_exp` for verification.
-- `proof_exp.c` is exponential — practical only for `n < 20`.
+- `proof.c` is **not sound** -- only a fast filter. Use `sorter_exp` for verification.
+- `proof_exp.c` is exponential -- practical only for `n < 20`.
 - Search only considers comparators incident to the inserted wire or its mirror.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT -- see [LICENSE](LICENSE).
 
 Author: Dmitri Bortoq <bortoq@gmail.com>
