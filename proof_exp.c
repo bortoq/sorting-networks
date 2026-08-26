@@ -4,6 +4,10 @@
 #include "sorter.h"
 #include <string.h>
 
+#ifndef PROOF_MAX_WIRES
+#define PROOF_MAX_WIRES 30
+#endif
+
 int network_sort(const network_t *net, size *data)
 {
   size l;
@@ -77,9 +81,15 @@ int network_proof(const network_t *net)
    * Exhaustive zero-one proof.
    * Practical for small networks; the search code keeps the target small.
    */
-  if(net->wires >= 20)
+  if(net->wires > PROOF_MAX_WIRES || net->wires >= 64)
   {
-    fprintf(stderr, "proof limit exceeded: %u wires\n", (unsigned)net->wires);
+    fprintf(stderr, "proof limit exceeded: %u wires (max %d)\n", (unsigned)net->wires, PROOF_MAX_WIRES);
+    return 0;
+  }
+  if(net->wires >= 32)
+  {
+    /* 2^n would overflow 64-bit, use iterative counter */
+    fprintf(stderr, "proof limit exceeded: %u wires too large for exhaustive check\n", (unsigned)net->wires);
     return 0;
   }
 

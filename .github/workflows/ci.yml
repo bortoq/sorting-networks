@@ -9,14 +9,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cc: [gcc, clang]
+    env:
+      CC: ${{ matrix.cc }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install CC
-        run: cc --version
+      - name: Compiler version
+        run: $CC --version
 
       - name: Build (pedantic C11)
         run: make all
+
+      - name: Unit tests
+        run: cc -std=c11 -Wall -Wextra -pedantic network.c tests/test_units.c proof_exp.c -o /tmp/test_units && /tmp/test_units
+
+      - name: Unit tests + ASAN/UBSAN
+        run: cc -std=c11 -Wall -Wextra -pedantic -fsanitize=address,undefined network.c tests/test_units.c proof_exp.c -o /tmp/test_units_asan && /tmp/test_units_asan
 
       - name: Strict proof on known networks
         run: make test
@@ -31,8 +42,10 @@ jobs:
           ./sorter_exp proof 16 < /tmp/vv16.txt
           echo "all generators verified"
 
-      - name: Check no warnings on -Wall -Wextra -pedantic
-        run: |
-          make clean
-          make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -Werror" 2>&1 | tee build.log
-          test ! -s build.log || cat build.log
+      - name: -Werror check
+        run: make clean && make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -Werror" 2>&1 | tee build.log
+
+      - name: Check no -Werror warnings
+        run: test ! -s build.log || (cat build.log; exit 1)
+        # actually build.log includes compiler output even on success if warnings as errors disabled, so we check exit above
+

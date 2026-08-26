@@ -10,7 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef uint16_t size;
+#define SORTER_MAX_WIRES 64  /* search uses 64-bit masks */
+#define PROOF_MAX_WIRES 30   /* 2^n exhaustive */
+
+typedef uint32_t size;
 
 typedef struct {
   size left;
@@ -49,5 +52,10 @@ int network_sort(const network_t *net, size *data);
 int network_proof(const network_t *net);
 
 network_t *search_extension(const network_t *seed, size target_wires, size max_extra_layers);
+
+// internal helpers exposed for modular build (network.c -> sorter.c)
+int network_insert_empty_layer_pub(network_t *net, size pos);
+uint64_t bit_mask_pub(size pos);
+int cmp_pair_pub(const cmp_t *a, const cmp_t *b);
 
 #endif /* SORTER_H_ */

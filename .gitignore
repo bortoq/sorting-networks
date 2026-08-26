@@ -3,11 +3,13 @@
 /sorter_exp
 /layer_perm
 /gen_network
+/test_units
 *.o
 *.out
 *.a
 # generated
 /generated*.txt
+/tmp/
 # OS
 .DS_Store
 Thumbs.db
@@ -16,3 +18,5 @@ Thumbs.db
 .idea/
 *.swp
 *~
+# sanitizers
+/build.log

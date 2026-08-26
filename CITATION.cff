@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it."
+title: "sorting-networks"
+description: "Search and generation of optimal sorting networks: incremental symmetric search, zero-one proof, Batcher/Van Voorhis generators"
+authors:
+  - family-names: Bortoq
+    given-names: Dmitri
+    email: bortoq@gmail.com
+license: MIT
+repository-code: "https://github.com/bortoq/sorting-networks"
+keywords:
+  - sorting-network
+  - sorting
+  - algorithms
+  - combinatorics
+  - c
+version: 0.2.0
+date-released: 2026-08-26

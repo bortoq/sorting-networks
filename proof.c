@@ -90,6 +90,8 @@ int network_sort(const network_t *net, size *data)
  * full test of sorter: all pathes from any position to any other should exist.
  * return 0 if test failed.
  */
+/* WARNING: heuristic proof only (anti-sorted + rotations), not sound.
+ * Use sorter_exp (zero-one principle) for strict verification. */
 int network_proof(const network_t *net)
 {
   size i;
@@ -99,6 +101,10 @@ int network_proof(const network_t *net)
   if(net == NULL)
     return 0;
 
+  if(net->wires > SORTER_MAX_WIRES)
+  {
+    fprintf(stderr, "warning: heuristic proof on %u wires (n > %d may be incomplete)\n", (unsigned)net->wires, SORTER_MAX_WIRES);
+  }
   a = array_generator(net->wires);
   if(a == NULL && net->wires != 0)
     return 0;

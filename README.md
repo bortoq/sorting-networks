@@ -96,16 +96,28 @@ Counts how many permutations of layers break the network:
 
 ## Known optimal networks
 
-`known/n03.txt` .. `known/n16.txt` -- reference networks (verified with `proof_exp.c`).
+`known/n03.txt` .. `known/n16.txt` -- reference networks (verified with `proof_exp.c`, exhaustive zero-one, `n<20`).
 
 | n | comparators | layers |
 |---|-------------|--------|
-| 3 | 5 | 3 |
-| 4 | 7 | 3 |
-| 9 | 31 | 7 |
-| 16| 60-61* | 10 |
+| 3 | 3 | 3 |
+| 4 | 5 | 3 |
+| 5 | 9 | 5 |
+| 6 | 12 | 5 |
+| 7 | 16 | 6 |
+| 8 | 19 | 6 |
+| 9 | 25 | 7 |
+| 10 | 29 | 8 |
+| 11 | 35 | 8 |
+| 12 | 39 | 9 |
+| 13 | 45 | 10 |
+| 14 | 51 | 10 |
+| 15 | 56 | 10 |
+| 16 | 60 | 10 |
 
-*`n=16` in this repo is 60-61 comparators in 10 layers (depth-optimal). See `known/n16.txt`.
+All match known optimum size/depth (Knuth 5.3.4, Codish et al.). See [docs/optimality.md](docs/optimality.md) for details.
+
+> Note: generators (`pairwise 16` = 63 comps/10 layers, `van-voorhis 16` = 61/10) are not optimal -- they are classical constructions for comparison.
 
 ## Design
 
@@ -121,9 +133,9 @@ Symmetry: comparator `a b` is added with its mirror `n-1-b n-1-a`. Self-mirrored
 
 ## Limitations
 
-- `proof.c` is **not sound** -- only a fast filter. Use `sorter_exp` for verification.
-- `proof_exp.c` is exponential -- practical only for `n < 20`.
-- Search only considers comparators incident to the inserted wire or its mirror.
+- `proof.c` is **not sound** -- heuristic only (anti-sorted + rotations). Use `sorter_exp` (zero-one, `2^n`, `n < 32`, practical `n < 20`) for verification.
+- Search is **heuristic, not exhaustive**: `max_extra_layers` capped at `1`, only comparators incident to inserted wire/mirror, `n <= 64` (64-bit masks).
+- `proof_exp` and search both limited to `n <= 64`; exhaustive proof limited to `n < 32` (and practical `n < 20`).
 
 ## License
 
