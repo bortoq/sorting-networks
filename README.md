@@ -131,13 +131,22 @@ All match known optimum size/depth (Knuth 5.3.4, Codish et al.). See [docs/optim
 
 ## Design
 
-- `sorter.h` -- network structure (`network_t`, `layer_t`, `cmp_t`), API:
-  `network_new/clone/free`, `network_add_cmp`, `network_insert_wire`, `network_load/write`, `network_sort`, `network_proof`, `search_extension`
-- `sorter.c` -- loader, layer packing, orbit enumeration, backtracking search
-- `proof.c` -- fast heuristic proof (anti-sorted + rotate)
-- `proof_exp.c` -- strict zero-one proof (`2^n` exhaustive, `n < 20`)
-- `gen_network.c` -- 8 generators (pairwise, Batcher, pipelined, bitonic, Bose-Nelson, brick, Green, Van Voorhis) + packer
-- `layer_perm.c` -- permutation robustness checker
+```
+src/
+  sorter.h, network.c, search.c, main.c  -- core
+  proof.c / proof_exp.c                   -- heuristic / strict proof
+  layer_perm.c                            -- permutation checker
+  gen/
+    gen_common.{h,c}  -- shared net/seq/packing
+    gen_pairwise.c, gen_batcher.c, gen_pipelined.c, gen_bitonic.c,
+    gen_bose.c, gen_brick.c, gen_green.c, gen_vanvoorhis.c, gen_zigzag.c
+    gen_network.c     -- CLI dispatcher
+```
+
+- `sorter.h` -- network structure (`network_t`, `layer_t`, `cmp_t`), API
+- `search.c` -- loader, layer packing, orbit enumeration, backtracking
+- `proof.c` -- heuristic (anti-sorted + rotate), `proof_exp.c` -- strict zero-one (`2^n`, `n < 20`)
+- `gen/` -- 9 generators + packer (see above), each in separate file for study
 
 Symmetry: comparator `a b` is added with its mirror `n-1-b n-1-a`. Self-mirrored comparators count as one. Search works on *orbits*, not individual pairs.
 
