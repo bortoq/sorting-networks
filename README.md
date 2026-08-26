@@ -78,6 +78,7 @@ Take an optimal network for `n-1`, extend to `n`:
 ./gen_network brick 16 > net.txt               # Brick transposition (120 comps, 16 layers)
 ./gen_network green 16 > net.txt               # Green filter (32 comps, 4 layers, not full sort)
 ./gen_network van-voorhis 16 > net.txt         # Van Voorhis square, n=2^(2^k), padded
+./gen_network zigzag 16 > net.txt                # Zig-zag (Goodrich, O(n log n) size, honest, deep)
 ./gen_network van-voorhis 65536 --count        # 3907497 comparators, 136 layers
 
 # verify
@@ -85,6 +86,7 @@ Take an optimal network for `n-1`, extend to `n`:
 ```
 
 Limits:
+- `zigzag`: `n = 2^k` (honest Goodrich, O(n log n) size, O(n log n) depth, large constants)
 - `pairwise`, `batcher-odd-even`, `pipelined-mergesort`, `bitonic`: `n = 2^k` (padded to any `n`)
 - `bose-nelson`, `brick`: any `n`
 - `green`: `n = 16` filter (truncated/padded else, 4 layers, not a full sorter)
