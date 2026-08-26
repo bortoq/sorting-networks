@@ -13,9 +13,8 @@
  *      Depth O(log^2 n), size O(n log^2 n). Reference implementation for
  *      comparison, not worst-case optimal but practical.
  *
- *   3) Pipelined mergesort: same odd-even merge block as Batcher, but
- *      expose pipeline stages (static merge-sort network with staged merges).
- *      Power-of-two only, more layers than Batcher due to staging.
+ *   3) Pipelined mergesort: currently alias to Batcher (same comparators
+ *      and layers). Intended to expose staged pipeline, TODO. Power-of-two only.
  *
  *   4) Van Voorhis square (Van Voorhis 1971, Lee 1986): n = 2^(2^k) only
  *      (16,256,65536..). Recursive square decomposition:
@@ -156,6 +155,13 @@ static void layer_add(layer_t *layer, unsigned left, unsigned right)
   layer->pair[layer->count].left = left;
   layer->pair[layer->count].right = right;
   ++layer->count;
+}
+
+static void seq_reserve(seq_t *seq, unsigned cap){
+  if(cap <= seq->cap) return;
+  pair_t *p = realloc(seq->pair, cap * sizeof *p);
+  if(!p) die("cannot reserve seq");
+  seq->pair=p; seq->cap=cap;
 }
 
 static void seq_add(seq_t *seq, unsigned left, unsigned right)
@@ -485,6 +491,7 @@ static net_t gen_batcher_odd_even(unsigned n)
 
 static net_t gen_pipelined_mergesort(unsigned n)
 {
+  // NOTE: currently identical to Batcher odd-even (staged merge TODO).
   if(!is_power2(n))
     die("pipelined-mergesort requires n to be a power of two");
   return gen_batcher_sort_rec(0, n);
@@ -530,6 +537,17 @@ static net_t gen_pairwise(unsigned n)
   return out;
 }
 
+static unsigned next_vv_size(unsigned n)
+{
+  unsigned p = 16;
+  if(n <= 16) return 16;
+  while(p < n){
+    if(p > (1u<<30)) die("van-voorhis size too large");
+    p = p * p;
+  }
+  return p;
+}
+
 static net_t gen_van_voorhis(unsigned n)
 {
   seq_t seq = {0, 0, NULL};
@@ -538,33 +556,58 @@ static net_t gen_van_voorhis(unsigned n)
   unsigned i;
   unsigned p;
   net_t out;
+  unsigned orig_n = n;
 
-  if(!is_power2(n))
-    die("van-voorhis requires n to be a power of two");
-
-  for(p = n; p > 1; p >>= 1)
-    ++m;
-  if(m == 0 || (m & (m - 1)) != 0)
-    die("van-voorhis currently supports n=2^(2^k)");
+  for(p = n; p > 1; p >>= 1) ++m;
+  int is_vv = is_power2(n) && m != 0 && (m & (m - 1)) == 0;
+  if(!is_vv){
+    // Generalized: pad to next 2^(2^k), generate, truncate wires >= orig_n
+    unsigned padded = next_vv_size(n);
+    net_t padded_net = gen_van_voorhis(padded);
+    seq_t filtered = {0,0,NULL};
+    for(unsigned l=0;l<padded_net.layers;++l)
+      for(unsigned k=0;k<padded_net.layer[l].count;++k){
+        unsigned a=padded_net.layer[l].pair[k].left, b=padded_net.layer[l].pair[k].right;
+        if(a < orig_n && b < orig_n) seq_add(&filtered, a,b);
+      }
+    net_free(&padded_net);
+    out = seq_pack(&filtered, orig_n);
+    seq_free(&filtered);
+    return out;
+  }
 
   map = malloc(n * sizeof *map);
-  if(map == NULL)
-    die("cannot allocate top-level map");
-
-  for(i = 0; i < n; ++i)
-    map[i] = i;
-
+  if(map == NULL) die("cannot allocate top-level map");
+  for(i=0;i<n;++i) map[i]=i;
+  // Reserve to avoid ~12 reallocs for large n (e.g. 65536 -> 3.9M)
+  if(n >= 256) seq_reserve(&seq, 4000000);
   gen_vv_sort_seq(&seq, map, m);
   out = seq_pack(&seq, n);
-
   free(map);
   seq_free(&seq);
   return out;
 }
 
+static int validate_network(const net_t *net, unsigned n)
+{
+  // Check each layer is matching and wires < n
+  for(unsigned l=0;l<net->layers;++l){
+    unsigned char *used = calloc(n,1);
+    if(!used) die("calloc failed in validate");
+    for(unsigned k=0;k<net->layer[l].count;++k){
+      unsigned a=net->layer[l].pair[k].left, b=net->layer[l].pair[k].right;
+      if(a>=n || b>=n){ free(used); return 0; }
+      if(used[a] || used[b]){ free(used); return 0; }
+      used[a]=used[b]=1;
+    }
+    free(used);
+  }
+  return 1;
+}
+
 static void usage(const char *argv0)
 {
-  fprintf(stderr, "usage: %s [--count] pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis n\n", argv0);
+  fprintf(stderr, "usage: %s [--count|--validate] pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis n\n", argv0);
 }
 
 int main(int argc, char **argv)
@@ -572,11 +615,18 @@ int main(int argc, char **argv)
   const char *algo;
   unsigned n;
   int count_only = 0;
+  int validate_only = 0;
   net_t net;
 
   if(argc == 4 && strcmp(argv[1], "--count") == 0)
   {
     count_only = 1;
+    ++argv;
+    --argc;
+  }
+  if(argc == 4 && strcmp(argv[1], "--validate") == 0)
+  {
+    validate_only = 1;
     ++argv;
     --argc;
   }
@@ -606,6 +656,12 @@ int main(int argc, char **argv)
 
   if(count_only)
     printf("%llu %u\n", (unsigned long long)net_cmp_count(&net), net.layers);
+  else if(validate_only){
+    int ok = validate_network(&net, n);
+    printf("%s: %llu comps, %u layers, %s\n", algo, (unsigned long long)net_cmp_count(&net), net.layers, ok?"VALID":"INVALID");
+    net_free(&net);
+    return ok?0:2;
+  }
   else
     net_print(&net);
 
