@@ -26,6 +26,8 @@
  */
 #include "sorter.h"
 #include <string.h>
+#include <errno.h>
+#include <limits.h>
 
 static void layer_free(layer_t *layer)
 {
@@ -310,17 +312,32 @@ network_t *network_load(FILE *in)
   while(fgets(line, sizeof line, in) != NULL)
   {
     char *p = trim(line);
-    unsigned a, b;
+    char *end;
+    long a_val, b_val;
     if(*p == '\0' || *p == '#')
     {
       active = 0;
       continue;
     }
-    if(sscanf(p, "%u %u", &a, &b) != 2)
-    {
+    errno = 0;
+    a_val = strtol(p, &end, 10);
+    if(end == p || errno == ERANGE || a_val < 0 || a_val > SORTER_MAX_WIRES){
       network_free(net);
       return NULL;
     }
+    while(*end==' '||*end=='\t') ++end;
+    char *b_start = end;
+    b_val = strtol(b_start, &end, 10);
+    if(end == b_start || errno == ERANGE || b_val < 0 || b_val > SORTER_MAX_WIRES){
+      network_free(net);
+      return NULL;
+    }
+    while(*end==' '||*end=='\t') ++end;
+    if(*end!='\0'){
+      network_free(net);
+      return NULL;
+    }
+    unsigned a = (unsigned)a_val, b = (unsigned)b_val;
     if(!active)
     {
       // blank line ended previous layer; start new layer
@@ -336,6 +353,17 @@ network_t *network_load(FILE *in)
       network_free(net);
       return NULL;
     }
+  }
+  if(net->layers==0){
+    network_free(net);
+    return NULL;
+  }
+  // Reject networks with zero comparators (e.g. "0 0" or empty)
+  size tot=0;
+  for(size i=0;i<net->layers;++i) tot+=net->layer[i].count;
+  if(tot==0){
+    network_free(net);
+    return NULL;
   }
   return net;
 }

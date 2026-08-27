@@ -2,26 +2,26 @@
 
 Reference: Knuth TAOCP 5.3.4, Codish et al., optimal depth/size tables.
 
-This repo's `known/n03-n16.txt` are depth/size efficient (not necessarily proven optimal for all n, but verified minimal for known range). Verified with strict zero-one proof (`proof_exp.c`, n<20).
+This repo's `known/n03-n16.txt` are depth/size efficient (not necessarily proven optimal for all n, but verified minimal for known range). Verified with strict zero-one proof (`proof_exp.c`, exhaustive `2^n`, practical `n<20`, hard limit `n<32`/`PROOF_MAX 30`).
 
-| n | comparators | layers (depth) | known optimum size | known optimum depth | status |
-|---|-------------|----------------|--------------------|---------------------|--------|
-| 3 | 3 | 3 | 3 | 3 | optimal |
-| 4 | 5 | 3 | 5 | 3 | optimal |
-| 5 | 9 | 5 | 9 | 5 | optimal |
-| 6 | 12 | 5 | 12 | 5 | optimal |
-| 7 | 16 | 6 | 16 | 6 | optimal |
-| 8 | 19 | 6 | 19 | 6 | optimal |
-| 9 | 25 | 7 | 25 | 7 | optimal |
-| 10| 29 | 7 | 29 | 7 | optimal |
-| 11| 35 | 8 | 35 | 8 | optimal |
-| 12| 39 | 8 | 39 | 8 | optimal |
-| 13| 45 | 9 | 45 | 9 | optimal |
-| 14| 51 | 9 | 51 | 9 | optimal |
-| 15| 56 | 9 | 56 | 9 | optimal* |
-| 16| 60 | 10 | 60 | 10 | optimal* |
+| n | comparators | layers | optimum size | optimum depth | file status |
+|---|-------------|--------|--------------|---------------|-------------|
+| 3 | 3 | 3 | **3** | **3** | size+depth optimal |
+| 4 | 5 | 3 | **5** | **3** | size+depth optimal |
+| 5 | 9 | 5 | **9** | **5** | size+depth optimal |
+| 6 | 12 | 5 | **12** | **5** | size+depth optimal |
+| 7 | 16 | 6 | **16** | **6** | size+depth optimal |
+| 8 | 19 | 6 | **19** | **6** | size+depth optimal |
+| 9 | 25 | 7 | **25** | **7** | size+depth optimal |
+|10 | 29 | 8 | **29** | **7** (31) | **size-optimal** (depth-optimal is 31/7) |
+|11 | 35 | 8 | **35** | **8** | size+depth optimal |
+|12 | 39 | 9 | **39** | **8** (40) | **size-optimal** (depth-optimal is 40/8) |
+|13 | 45 |10 | **45** | **9** | size-optimal (depth-optimal 46/9) |
+|14 | 51 |10 | **51** | **9** | size-optimal (depth-optimal 52/9) |
+|15 | 56 |10 | **56** | **9** | size-optimal (depth-optimal 57/9) |
+|16 | 60 |10 | **60** | **9** (61) | **size-optimal** (depth-optimal is 61/9) |
 
-* For n=15,16 the optimal size/depth is known from exhaustive search (see Bundala, Codish). Our n16 has 60 comparators (10 layers) -- matches Van Voorhis/optimal table. Some Batcher/van-voorhis generators produce 61/63 comparators for n=16, which is not optimal but within 5% depth-optimal.
+* For n=15,16 the optimal size/depth is known from exhaustive search (see Bundala, Codish). Our n16 has 60 comparators (10 layers) -- size-optimal (depth-optimal is 9 layers with 61 comparators). Some Batcher/van-voorhis generators produce 61/63 comparators for n=16, which is not optimal but within 5% depth-optimal.
 
 ## How this repo searches
 

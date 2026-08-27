@@ -3,6 +3,7 @@
 
 net_t gen_pairwise(unsigned n)
 {
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   net_t out = {0, 0, NULL};
   unsigned p;
   unsigned orig_n = n;

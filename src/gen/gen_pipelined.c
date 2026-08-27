@@ -42,6 +42,7 @@ net_t gen_pipelined_sort_rec(unsigned lo, unsigned n)
 
 net_t gen_pipelined_mergesort(unsigned n)
 {
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   if(!is_power2(n)){
     unsigned padded = next_pow2(n);
     net_t pn = gen_pipelined_sort_rec(0, padded);

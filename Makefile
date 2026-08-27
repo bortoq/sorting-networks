@@ -11,10 +11,10 @@ SRC_GEN_ALL = $(SRC_GEN_COMMON) $(SRC_GEN) src/gen/gen_network.c
 all: sorter sorter_exp layer_perm gen_network
 
 sorter: $(SRC_COMMON) src/main.c src/proof.c src/sorter.h
-	$(CC) $(CFLAGS) $(SRC_COMMON) src/main.c src/proof.c -o sorter
+	$(CC) $(CFLAGS) -O2 $(SRC_COMMON) src/main.c src/proof.c -o sorter
 
 sorter_exp: $(SRC_COMMON) src/main.c src/proof_exp.c src/sorter.h
-	$(CC) $(CFLAGS) $(SRC_COMMON) src/main.c src/proof_exp.c -o sorter_exp
+	$(CC) $(CFLAGS) -O2 $(SRC_COMMON) src/main.c src/proof_exp.c -o sorter_exp
 
 layer_perm: src/layer_perm.c
 	$(CC) $(CFLAGS) -O2 src/layer_perm.c -o layer_perm

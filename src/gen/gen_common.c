@@ -12,7 +12,16 @@ int is_power2(unsigned n)
   return n && ((n & (n - 1)) == 0);
 }
 
-unsigned next_pow2(unsigned n){ unsigned p=1; while(p<n) p<<=1; return p; }
+unsigned next_pow2(unsigned n){
+  if(n==0) return 1;
+  if(n > 65536) die("gen: n too large (max 65536)");
+  unsigned p=1;
+  while(p<n){
+    if(p > (1u<<30)) die("gen: next_pow2 overflow");
+    p <<=1;
+  }
+  return p;
+}
 
 void layer_free(layer_t *layer)
 {

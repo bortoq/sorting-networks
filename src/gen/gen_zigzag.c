@@ -68,6 +68,7 @@ static void zigzag_sort_rec(seq_t *seq, unsigned *W, unsigned n){
   }
 }
 net_t gen_zigzag(unsigned n){
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   if(!is_power2(n)) die("zig-zag requires n to be a power of two");
   seq_t seq={0,0,NULL};
   unsigned *W = malloc(n*sizeof *W);

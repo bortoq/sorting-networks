@@ -21,6 +21,7 @@ static void bose_pstar(seq_t *seq, unsigned i, unsigned m){
   bose_pbracket(seq, i, a, i+a, m-a);
 }
 net_t gen_bose_nelson(unsigned n){
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   seq_t seq={0,0,NULL};
   bose_pstar(&seq, 0, n);
   net_t out = seq_pack(&seq, n);

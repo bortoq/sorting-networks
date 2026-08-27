@@ -63,21 +63,12 @@ static int is_sorted(const size *data, size n)
   return 1;
 }
 
-static int proof_mask(const network_t *net, uint64_t mask)
+static int proof_mask(const network_t *net, uint64_t mask, size *data)
 {
   size i;
-  size *data = malloc(net->wires * sizeof *data);
-  int ok;
-
-  if(data == NULL)
-    return 0;
-
   for(i = 0; i < net->wires; ++i)
     data[i] = (size)((mask >> i) & 1u); // binary input from mask bit i
-
-  ok = network_sort(net, data) && is_sorted(data, net->wires);
-  free(data);
-  return ok;
+  return network_sort(net, data) && is_sorted(data, net->wires);
 }
 
 int network_proof(const network_t *net)
@@ -108,9 +99,13 @@ int network_proof(const network_t *net)
   }
 
   limit = 1ULL << net->wires; // 2^n masks
+  size *data = malloc(net->wires * sizeof *data);
+  if(data==NULL) return 0;
   for(mask = 0; mask < limit; ++mask)
-    if(!proof_mask(net, mask))
+    if(!proof_mask(net, mask, data)){
+      free(data);
       return 0; // found binary counterexample -> not sorting
-
+    }
+  free(data);
   return 1;
 }

@@ -7,6 +7,7 @@ unsigned next_vv_size(unsigned n)
   if(n <= 16) return 16;
   while(p < n){
     if(p > (1u<<30)) die("van-voorhis size too large");
+    if(p > (1u<<30)) die("van-voorhis size too large");
     p = p * p;
   }
   return p;
@@ -14,6 +15,7 @@ unsigned next_vv_size(unsigned n)
 
 net_t gen_van_voorhis(unsigned n)
 {
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   seq_t seq = {0, 0, NULL};
   unsigned *map;
   unsigned m = 0;

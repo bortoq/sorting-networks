@@ -79,7 +79,7 @@ Take an optimal network for `n-1`, extend to `n`:
 ./gen_network green 16 > net.txt               # Green filter (32 comps, 4 layers, not full sort)
 ./gen_network van-voorhis 16 > net.txt         # Van Voorhis square, n=2^(2^k), padded
 ./gen_network zigzag 16 > net.txt                # Zig-zag (Goodrich, O(n log n) size, honest, deep)
-./gen_network van-voorhis 65536 --count        # 3907497 comparators, 136 layers
+./gen_network --count van-voorhis 65536        # 3907497 comparators, 136 layers
 
 # verify
 ./sorter_exp proof 16 < net.txt
@@ -123,7 +123,7 @@ Counts how many permutations of layers break the network:
 | 15 | 56 | 10 |
 | 16 | 60 | 10 |
 
-All match known optimum size/depth (Knuth 5.3.4, Codish et al.). See [docs/optimality.md](docs/optimality.md) for details.
+All are **size-optimal** (minimal comparators). Depth is not always minimal — see [docs/optimality.md](docs/optimality.md) for size/depth tradeoffs (e.g. n=10 size-optimal 29/8 vs depth-optimal 31/7).
 
 `known/best/n17..32.txt` -- best-known (suboptimal, not proven optimal) from Dobbelaere SorterHunter (extended up to 64). Imported as reference, not proven minimal.
 
@@ -145,7 +145,7 @@ src/
 
 - `sorter.h` -- network structure (`network_t`, `layer_t`, `cmp_t`), API
 - `search.c` -- loader, layer packing, orbit enumeration, backtracking
-- `proof.c` -- heuristic (anti-sorted + rotate), `proof_exp.c` -- strict zero-one (`2^n`, `n < 20`)
+- `proof.c` -- heuristic (anti-sorted + rotate), `proof_exp.c` -- strict zero-one (`2^n`, practical `n<20`, hard `n<32`)
 - `gen/` -- 9 generators + packer (see above), each in separate file for study
 
 Symmetry: comparator `a b` is added with its mirror `n-1-b n-1-a`. Self-mirrored comparators count as one. Search works on *orbits*, not individual pairs.

@@ -5,7 +5,7 @@
  *
  * Module layout:
  *   network.c     - core storage/I/O/matching (network_t, layer_t)
- *   search_lib.c  - symmetric search (orbits, DFS packing)
+ *   search.c  - symmetric search (orbits, DFS packing)
  *   main.c        - CLI (proof/search)
  *   proof.c       - heuristic proof, proof_exp.c - strict zero-one
  *   gen_network.c - Batcher/pairwise/Van Voorhis generators

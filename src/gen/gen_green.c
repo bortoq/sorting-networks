@@ -8,6 +8,7 @@ static const pair_t green16[4][8] = {
   {{0,1},{2,4},{3,8},{5,6},{7,12},{9,10},{11,13},{14,15}}
 };
 net_t gen_green(unsigned n){
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   net_t out={0,0,NULL};
   if(n==16){
     for(unsigned l=0;l<4;++l) for(unsigned k=0;k<8;++k) net_add(&out, l, green16[l][k].left, green16[l][k].right);

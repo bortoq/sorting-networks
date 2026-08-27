@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #define MAX_WIRES 20
 #define MAX_LAYERS 16
@@ -75,8 +76,16 @@ static int load_network(FILE *in, network_t *net)
       continue;
     }
 
-    if(sscanf(p, "%u %u", &left, &right) != 2)
-      return 0;
+    char *end;
+    long a_val = strtol(p, &end, 10);
+    if(end==p || errno==ERANGE || a_val<0 || a_val>=MAX_WIRES) return 0;
+    while(*end==' '||*end=='\t') ++end;
+    char *b_start=end;
+    long b_val = strtol(b_start, &end, 10);
+    if(end==b_start || errno==ERANGE || b_val<0 || b_val>=MAX_WIRES) return 0;
+    while(*end==' '||*end=='\t') ++end;
+    if(*end!='\0') return 0;
+    left=(unsigned)a_val; right=(unsigned)b_val;
 
     if(!active)
     {
@@ -206,10 +215,21 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if(argc > 1)
-    net.wires = (unsigned)strtoul(argv[1], NULL, 10);
-  if(net.wires > MAX_WIRES)
-    return 1;
+  if(argc > 1){
+    char *end; errno=0;
+    long v=strtol(argv[1], &end, 10);
+    if(end==argv[1] || errno==ERANGE || v<=0 || v>MAX_WIRES || *end!='\0'){
+      fprintf(stderr, "invalid wires arg\n"); return 1;
+    }
+    unsigned req=(unsigned)v;
+    if(req < net.wires){
+      fprintf(stderr, "warning: requested wires %u < network wires %u, using %u\n", req, net.wires, net.wires);
+    } else if(req > net.wires){
+      // allow larger wires as padding, but check limit
+      net.wires = req;
+    }
+  }
+  if(net.wires==0 || net.wires>MAX_WIRES){ fprintf(stderr, "invalid wires\n"); return 1; }
 
   count_rec(&net, 0, 0, perm, &ok, &bad);
   printf("%u %u %llu %llu %llu\n",

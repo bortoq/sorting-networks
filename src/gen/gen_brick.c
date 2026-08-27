@@ -2,6 +2,7 @@
 #include <string.h>
 
 net_t gen_brick(unsigned n){
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   net_t out={0,0,NULL};
   if(n < 2) return out;
   for(unsigned layer=0; layer<n; ++layer){

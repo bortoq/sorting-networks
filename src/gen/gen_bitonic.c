@@ -19,6 +19,7 @@ static void bitonic_sort_rec(seq_t *seq, unsigned lo, unsigned n, int dir){
   bitonic_merge(seq, lo, n, dir);
 }
 net_t gen_bitonic(unsigned n){
+  if(n==0 || n>65536) die("gen: n out of range 1..65536");
   if(!is_power2(n)) die("bitonic requires n to be a power of two");
   seq_t seq={0,0,NULL};
   bitonic_sort_rec(&seq, 0, n, 1);

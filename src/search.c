@@ -200,12 +200,33 @@ static void orbit_unplace(network_t *net, size layer_idx, size added)
     layer->count -= added;
 }
 
+static int strict_proof(const network_t *net){
+  // Exhaustive zero-one proof for n<=20, else fallback to heuristic
+  if(net==NULL) return 0;
+  if(net->wires==0) return 1;
+  if(net->wires > 20) return network_proof(net); // for large n, rely on linked proof
+  // Use proof_exp logic inline to avoid link dependency
+  uint64_t limit = 1ULL << net->wires;
+  for(uint64_t mask=0; mask<limit; ++mask){
+    size *data = malloc(net->wires * sizeof *data);
+    if(!data) return 0;
+    for(size i=0;i<net->wires;++i) data[i]=(size)((mask>>i)&1u);
+    int ok = network_sort(net, data);
+    // is_sorted
+    int sorted=1;
+    for(size i=1;i<net->wires;++i) if(data[i-1] > data[i]) sorted=0;
+    free(data);
+    if(!ok || !sorted) return 0;
+  }
+  return 1;
+}
+
 static int search_orbits(size idx, const orbit_t *cand, size cand_count, network_t *work, uint64_t *masks)
 {
   size layer;
 
-  if(network_proof(work))
-    return 1; // early success: current partial placement already sorts
+  if(network_proof(work) && strict_proof(work))
+    return 1; // require both heuristic and strict (if n<=20) // early success: current partial placement already sorts
 
   if(idx >= cand_count)
     return 0;
@@ -340,10 +361,14 @@ network_t *search_extension(const network_t *seed, size target_wires, size max_e
 
         if(search_orbits(0, cand, cand_count, work, masks))
         {
-          free(cand);
-          free(masks);
-          network_free(base);
-          return work;
+          if(!strict_proof(work)){
+            fprintf(stderr, "candidate failed strict proof, continuing search\n");
+          } else {
+            free(cand);
+            free(masks);
+            network_free(base);
+            return work;
+          }
         }
 
         free(cand);
@@ -416,6 +441,11 @@ int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
     return 1;
   }
 
+  if(!strict_proof(found)){
+    fprintf(stderr, "warning: found network failed strict proof (heuristic only) - no valid extension\n");
+    network_free(found);
+    return 1;
+  }
   if(!network_write(stdout, found))
   {
     network_free(found);
