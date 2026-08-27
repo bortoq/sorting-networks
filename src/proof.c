@@ -67,36 +67,7 @@ static void shift_array(size n, size *a)
 /*
  * sort array using sorting network
  */
-int network_sort(const network_t *net, size *data)
-{
-  size l;
-  size n;
-
-  if(net == NULL || data == NULL)
-    return 0;
-
-  for(l = 0; l < net->layers; ++l)
-  {
-    const layer_t *layer = &net->layer[l];
-    for(n = 0; n < layer->count; ++n)
-    {
-      size left = layer->pairs[n].left;
-      size right = layer->pairs[n].right;
-
-      if(left >= net->wires || right >= net->wires)
-        return 0;
-
-      if(left != right && data[left] > data[right])
-      {
-        size tmp = data[left];
-        data[left] = data[right];
-        data[right] = tmp;
-      }
-    }
-  }
-
-  return 1;
-}
+/* network_sort moved to network.c */
 
 /*
  * full test of sorter: all pathes from any position to any other should exist.

@@ -73,12 +73,43 @@ static void test_max_wires_guard() {
   network_free(seed);
   printf("test_max_wires_guard: OK\n");
 }
+static void test_negative_parse(){
+  const char *bad1 = "99999999999 1\n";
+  const char *bad2 = "-1 0\n";
+  const char *bad3 = "0 0\n";
+  const char *bad4 = "";
+  for(int i=0;i<4;++i){
+    const char *txt = (i==0?bad1:(i==1?bad2:(i==2?bad3:bad4)));
+    FILE *f = fmemopen((void*)txt, strlen(txt), "r");
+    network_t *n = network_load(f); fclose(f);
+    assert(n==NULL);
+  }
+  printf("test_negative_parse: OK\n");
+}
+static void test_generator_roundtrip(){
+  // pairwise 8 should sort
+  FILE *f = fopen("known/n08.txt","r");
+  assert(f);
+  network_t *n = network_load(f); fclose(f);
+  assert(n);
+  // write and reload
+  char *buf=NULL; size_t sz=0;
+  FILE *out = open_memstream(&buf,&sz);
+  network_write(out,n); fclose(out);
+  FILE *in = fmemopen(buf, sz, "r");
+  network_t *m = network_load(in); fclose(in);
+  assert(m && m->layers==n->layers);
+  free(buf); network_free(n); network_free(m);
+  printf("test_generator_roundtrip: OK\n");
+}
 int main(){
   test_network_new_free();
   test_add_cmp_conflict();
   test_insert_wire();
   test_load_write();
   test_load_invalid();
+  test_negative_parse();
+  test_generator_roundtrip();
   test_proof_heuristic_vs_strict();
   test_max_wires_guard();
   printf("ALL UNIT TESTS PASSED\n");

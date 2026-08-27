@@ -140,7 +140,7 @@ int network_append_layer(network_t *net)
   return 1;
 }
 
-static int network_insert_empty_layer(network_t *net, size pos)
+int network_insert_empty_layer(network_t *net, size pos)
 {
   size i;
   if(net == NULL)
@@ -156,7 +156,7 @@ static int network_insert_empty_layer(network_t *net, size pos)
   return 1;
 }
 
-static int cmp_pair(const cmp_t *a, const cmp_t *b)
+int cmp_pair(const cmp_t *a, const cmp_t *b)
 {
   if(a->left < b->left)
     return -1;
@@ -169,12 +169,30 @@ static int cmp_pair(const cmp_t *a, const cmp_t *b)
   return 0;
 }
 
-static uint64_t bit_mask(size index)
+uint64_t bit_mask(size index)
 {
   // 64-bit layer occupancy mask; n>64 returns 0 (guarded by caller)
   if(index >= 64)
     return 0;
   return 1ULL << index;
+}
+
+int network_sort(const network_t *net, size *data)
+{
+  size l, n;
+  if(net==NULL || data==NULL) return 0;
+  for(l=0;l<net->layers;++l){
+    const layer_t *layer=&net->layer[l];
+    for(n=0;n<layer->count;++n){
+      size left=layer->pairs[n].left, right=layer->pairs[n].right;
+      if(left >= net->wires || right >= net->wires) return 0;
+      if(left==right) continue;
+      if(data[left] > data[right]){
+        size tmp=data[left]; data[left]=data[right]; data[right]=tmp;
+      }
+    }
+  }
+  return 1;
 }
 
 size network_max_wire(const network_t *net)
@@ -368,7 +386,4 @@ network_t *network_load(FILE *in)
   return net;
 }
 
-/* internal helpers exposed for search.c via header */
-int network_insert_empty_layer_pub(network_t *net, size pos) { return network_insert_empty_layer(net, pos); }
-uint64_t bit_mask_pub(size index) { return bit_mask(index); }
-int cmp_pair_pub(const cmp_t *a, const cmp_t *b) { return cmp_pair(a,b); }
+

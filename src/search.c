@@ -34,9 +34,9 @@
 #include <stdio.h>
 
 /* forward from network.c */
-int network_insert_empty_layer_pub(network_t *net, size pos);
-uint64_t bit_mask_pub(size index);
-int cmp_pair_pub(const cmp_t *a, const cmp_t *b);
+int network_insert_empty_layer(network_t *net, size pos);
+uint64_t bit_mask(size index);
+int cmp_pair(const cmp_t *a, const cmp_t *b);
 
 typedef struct {
   cmp_t first;
@@ -80,9 +80,9 @@ static int orbit_cmp(const void *pa, const void *pb)
     return -1;
   if(a->score > b->score)
     return 1;
-  if(cmp_pair_pub(&a->first, &b->first) != 0)
-    return cmp_pair_pub(&a->first, &b->first);
-  return cmp_pair_pub(&a->second, &b->second);
+  if(cmp_pair(&a->first, &b->first) != 0)
+    return cmp_pair(&a->first, &b->first);
+  return cmp_pair(&a->second, &b->second);
 }
 
 static int orbit_make(size wires, size pivot, size left, size right, orbit_t *orbit)
@@ -107,18 +107,18 @@ static int orbit_make(size wires, size pivot, size left, size right, orbit_t *or
   b.left = (size)(wires - 1 - right);
   b.right = (size)(wires - 1 - left);
 
-  if(cmp_pair_pub(&a, &b) > 0)
+  if(cmp_pair(&a, &b) > 0)
     return 0; // canonical: only keep one of mirror pair (a <= b) to avoid duplicates
 
-  mask |= bit_mask_pub(a.left);
-  mask |= bit_mask_pub(a.right);
-  mask |= bit_mask_pub(b.left);
-  mask |= bit_mask_pub(b.right);
+  mask |= bit_mask(a.left);
+  mask |= bit_mask(a.right);
+  mask |= bit_mask(b.left);
+  mask |= bit_mask(b.right);
 
   orbit->first = a;
   orbit->second = b;
   orbit->mask = mask;
-  orbit->count = cmp_pair_pub(&a, &b) == 0 ? 1 : 2;
+  orbit->count = cmp_pair(&a, &b) == 0 ? 1 : 2;
   orbit->score = orbit_score(wires, pivot, orbit);
   return 1;
 }
@@ -132,6 +132,7 @@ static orbit_t *build_orbits(const network_t *net, size pivot, size *count)
   size left;
   size right;
 
+  if(count) *count = 0;
   if(list == NULL)
     return NULL;
 
@@ -165,8 +166,8 @@ static uint64_t *build_layer_masks(const network_t *net)
     for(j = 0; j < net->layer[i].count; ++j)
     {
       const cmp_t *cmp = &net->layer[i].pairs[j];
-      mask[i] |= bit_mask_pub(cmp->left);
-      mask[i] |= bit_mask_pub(cmp->right);
+      mask[i] |= bit_mask(cmp->left);
+      mask[i] |= bit_mask(cmp->right);
     }
 
   return mask;
@@ -174,18 +175,13 @@ static uint64_t *build_layer_masks(const network_t *net)
 
 static size orbit_place(network_t *net, size layer_idx, const orbit_t *orbit)
 {
-  size added = 0;
-
+  // Only used for count==1 orbits (single comparator). For count==2 the caller
+  // places comparators on two (possibly different) layers, so this helper
+  // handles single-comparator case and correctly rolls back on failure.
+  if(orbit->count != 1) return 0;
   if(!network_add_cmp(net, layer_idx, orbit->first.left, orbit->first.right))
     return 0;
-  ++added;
-  if(orbit->count == 2)
-  {
-    if(!network_add_cmp(net, layer_idx, orbit->second.left, orbit->second.right))
-      return 0;
-    ++added;
-  }
-  return added;
+  return 1;
 }
 
 static void orbit_unplace(network_t *net, size layer_idx, size added)
@@ -236,7 +232,7 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
     for(layer = 0; layer < work->layers; ++layer)
     {
       size added;
-      uint64_t mask = bit_mask_pub(cand[idx].first.left) | bit_mask_pub(cand[idx].first.right);
+      uint64_t mask = bit_mask(cand[idx].first.left) | bit_mask(cand[idx].first.right);
 
       if(masks[layer] & mask)
         continue; // wire already occupied in this layer
@@ -253,8 +249,8 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
   else
   {
     size layer2;
-    uint64_t mask1 = bit_mask_pub(cand[idx].first.left) | bit_mask_pub(cand[idx].first.right);
-    uint64_t mask2 = bit_mask_pub(cand[idx].second.left) | bit_mask_pub(cand[idx].second.right);
+    uint64_t mask1 = bit_mask(cand[idx].first.left) | bit_mask(cand[idx].first.right);
+    uint64_t mask2 = bit_mask(cand[idx].second.left) | bit_mask(cand[idx].second.right);
 
     for(layer = 0; layer < work->layers; ++layer)
     {
@@ -332,7 +328,7 @@ network_t *search_extension(const network_t *seed, size target_wires, size max_e
           return NULL;
         }
 
-        if(extra && !network_insert_empty_layer_pub(work, layer_pos))
+        if(extra && !network_insert_empty_layer(work, layer_pos))
         {
           network_free(work);
           network_free(base);

@@ -42,6 +42,11 @@ jobs:
           ./sorter_exp proof 16 < /tmp/vv16.txt
           echo "all generators verified"
 
+      - name: clang-format check
+        run: |
+          if command -v clang-format >/dev/null; then
+            find src -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror || echo "run clang-format -i (warning)";
+          else echo "clang-format not found, skipping"; fi
       - name: -Werror check
         run: make clean && make all CFLAGS="-std=c11 -Wall -Wextra -pedantic -D_GNU_SOURCE -Werror"
 
