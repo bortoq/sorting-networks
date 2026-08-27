@@ -438,7 +438,9 @@ int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
   }
 
   if(!strict_proof(found)){
-    fprintf(stderr, "warning: found network failed strict proof (heuristic only) - no valid extension\n");
+    fprintf(stderr,
+              "warning: found network failed strict proof (heuristic only)"
+              " - no valid extension\n");
     network_free(found);
     return 1;
   }
