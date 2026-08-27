@@ -48,23 +48,15 @@ Network format: one comparator `i j` per line, empty line separates layers, `#` 
 
 Exit code `0` = sorted, `1` = failed. `stderr` prints `sort OK` / `sort failed`.
 
-### 2. Search for an extension
+### 2. Search for an extension (experimental heuristic toy for optimal networks)
 
-Take an optimal network for `n-1`, extend to `n`:
-
-```sh
-./sorter search [target_wires] [max_extra_layers] < seed.txt > out.txt
-# examples
-./sorter search < known/n09.txt > n10_candidate.txt        # n=9 -> 10
-./sorter search 10 1 < known/n09.txt > n10_candidate.txt   # explicit
-./sorter_exp search 10 1 < known/n09.txt > n10_candidate.txt # with strict proof
-```
-
-`max_extra_layers` is capped at `1`. The search:
-1. clones seed, inserts a new wire at each position `0..n-1`
-2. enumerates symmetric orbits `a b <-> n-1-b n-1-a` touching the new wire or its mirror
-3. tries to place orbits into existing layers first, then into one fresh layer (tried at each insertion position)
-4. runs `network_proof` after each complete placement
+Heuristic incremental search for **optimal** sorting networks `n-1 -> n` (not guaranteed to find extension):
+- inserts new wire at each position `0..n-1`
+- enumerates symmetric orbits `a b <-> n-1-b n-1-a` incident to inserted wire / mirror only
+- packs orbits into existing layers first, then tries one fresh layer at each position (`max_extra_layers=1`)
+- verifies with heuristic + strict proof (`strict_proof` for n<=20). Not exhaustive.
+- **In current form finds only trivial extensions** — e.g. `sorter search < known/n09.txt` is **expected to fail** (`no extension`), missing known optimum `29/8` for `n=10`.
+- For real optimal search use SAT/CP (Codish/Bundala) or SorterHunter.
 
 ### 3. Generate classical networks
 

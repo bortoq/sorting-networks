@@ -22,17 +22,22 @@ layer_perm: src/layer_perm.c
 gen_network: $(SRC_GEN_ALL) src/gen/gen.h src/gen/gen_common.h
 	$(CC) $(CFLAGS) -O2 $(SRC_GEN_ALL) -o gen_network
 
-test: sorter_exp
+test: sorter_exp gen_network
 	@echo "== strict proof (zero-one) on known networks =="
 	@for f in known/n*.txt; do \
 	  echo -n "$$f: "; \
 	  ./sorter_exp proof < $$f > /dev/null && echo "OK" || echo "FAIL"; \
 	done
 	@echo "== generator smoke test =="
-	@./gen_network --count pairwise 16 | grep -q "63 10" && echo "pairwise 16: OK" || echo "pairwise 16: FAIL"
-	@./gen_network --count batcher-odd-even 16 | grep -q "63" && echo "batcher 16: OK" || echo "batcher 16: FAIL"
-	@./gen_network --count bose-nelson 16 | grep -q "65" && echo "bose 16: OK" || echo "bose 16: FAIL"
-	@./gen_network --count bitonic 16 | grep -q "80" && echo "bitonic 16: OK" || echo "bitonic 16: FAIL"
+	@./gen_network --count pairwise 16 | grep -q "^63 10$$" && echo "pairwise 16: OK" || echo "pairwise 16: FAIL"
+	@./gen_network --count batcher-odd-even 16 | grep -q "^63 10$$" && echo "batcher 16: OK" || echo "batcher 16: FAIL"
+	@./gen_network --count bose-nelson 16 | grep -q "^65 15$$" && echo "bose 16: OK" || echo "bose 16: FAIL"
+	@./gen_network --count bitonic 16 | grep -q "^80 10$$" && echo "bitonic 16: OK" || echo "bitonic 16: FAIL"
+	@./gen_network --count pipelined-mergesort 16 | grep -q "^63 14$$" && echo "pipelined 16: OK" || echo "pipelined 16: FAIL"
+	@./gen_network --count brick 16 | grep -q "^120 16$$" && echo "brick 16: OK" || echo "brick 16: FAIL"
+	@./gen_network --count green 16 | grep -q "^32 4$$" && echo "green 16: OK" || echo "green 16: FAIL"
+	@./gen_network --count van-voorhis 16 | grep -q "^61 10$$" && echo "van-voorhis 16: OK" || echo "van-voorhis 16: FAIL"
+	@./gen_network --count zigzag 16 | grep -q "^550 219$$" && echo "zigzag 16: OK" || echo "zigzag 16: FAIL"
 
 test-strict: sorter_exp
 	./tests/run.sh
