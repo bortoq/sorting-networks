@@ -30,15 +30,16 @@
  * Refs: Codish et al. "Sorting Networks: to the End Game", Bundala-Codish
  */
 #include "sorter.h"
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 /* forward from network.c */
 int network_insert_empty_layer(network_t *net, size pos);
 uint64_t bit_mask(size index);
 int cmp_pair(const cmp_t *a, const cmp_t *b);
 
-typedef struct {
+typedef struct
+{
   cmp_t first;
   cmp_t second;
   uint64_t mask;
@@ -53,16 +54,16 @@ static unsigned orbit_score(size wires, size pivot, const orbit_t *orbit)
   unsigned score = 0;
   size i;
 
-  for(i = 0; i < orbit->count; ++i)
+  for (i = 0; i < orbit->count; ++i)
   {
     const cmp_t *cmp = (i == 0) ? &orbit->first : &orbit->second;
     size left = cmp->left;
     size right = cmp->right;
-    if(left > pivot)
+    if (left > pivot)
       score += (unsigned)(left - pivot);
     else
       score += (unsigned)(pivot - left);
-    if(right > pivot)
+    if (right > pivot)
       score += (unsigned)(right - pivot);
     else
       score += (unsigned)(pivot - right);
@@ -76,11 +77,11 @@ static int orbit_cmp(const void *pa, const void *pb)
   const orbit_t *a = pa;
   const orbit_t *b = pb;
 
-  if(a->score < b->score)
+  if (a->score < b->score)
     return -1;
-  if(a->score > b->score)
+  if (a->score > b->score)
     return 1;
-  if(cmp_pair(&a->first, &b->first) != 0)
+  if (cmp_pair(&a->first, &b->first) != 0)
     return cmp_pair(&a->first, &b->first);
   return cmp_pair(&a->second, &b->second);
 }
@@ -92,14 +93,14 @@ static int orbit_make(size wires, size pivot, size left, size right, orbit_t *or
   size mirror = wires - 1 - pivot;
   uint64_t mask = 0;
 
-  if(left > right)
+  if (left > right)
   {
     size tmp = left;
     left = right;
     right = tmp;
   }
 
-  if(!(left == pivot || right == pivot || left == mirror || right == mirror))
+  if (!(left == pivot || right == pivot || left == mirror || right == mirror))
     return 0; // orbit must touch inserted wire or its mirror
 
   a.left = left;
@@ -107,7 +108,7 @@ static int orbit_make(size wires, size pivot, size left, size right, orbit_t *or
   b.left = (size)(wires - 1 - right);
   b.right = (size)(wires - 1 - left);
 
-  if(cmp_pair(&a, &b) > 0)
+  if (cmp_pair(&a, &b) > 0)
     return 0; // canonical: only keep one of mirror pair (a <= b) to avoid duplicates
 
   mask |= bit_mask(a.left);
@@ -132,18 +133,20 @@ static orbit_t *build_orbits(const network_t *net, size pivot, size *count)
   size left;
   size right;
 
-  if(count) *count = 0;
-  if(list == NULL)
+  if (count)
+    *count = 0;
+  if (list == NULL)
     return NULL;
 
-  for(left = 0; left < wires; ++left)
-    for(right = left + 1; right < wires; ++right)
+  for (left = 0; left < wires; ++left)
+    for (right = left + 1; right < wires; ++right)
     {
       orbit_t orbit;
-      if(!orbit_make(wires, pivot, left, right, &orbit))
+      if (!orbit_make(wires, pivot, left, right, &orbit))
         continue;
-      if(network_has_cmp(net, orbit.first.left, orbit.first.right) &&
-         (orbit.count == 1 || network_has_cmp(net, orbit.second.left, orbit.second.right)))
+      if (network_has_cmp(net, orbit.first.left, orbit.first.right) &&
+          (orbit.count == 1 ||
+           network_has_cmp(net, orbit.second.left, orbit.second.right)))
         continue; // already present in network, skip
       list[n++] = orbit;
     }
@@ -159,11 +162,11 @@ static uint64_t *build_layer_masks(const network_t *net)
   size j;
   uint64_t *mask = calloc(net->layers ? net->layers : 1, sizeof *mask);
 
-  if(mask == NULL)
+  if (mask == NULL)
     return NULL;
 
-  for(i = 0; i < net->layers; ++i)
-    for(j = 0; j < net->layer[i].count; ++j)
+  for (i = 0; i < net->layers; ++i)
+    for (j = 0; j < net->layer[i].count; ++j)
     {
       const cmp_t *cmp = &net->layer[i].pairs[j];
       mask[i] |= bit_mask(cmp->left);
@@ -178,8 +181,9 @@ static size orbit_place(network_t *net, size layer_idx, const orbit_t *orbit)
   // Only used for count==1 orbits (single comparator). For count==2 the caller
   // places comparators on two (possibly different) layers, so this helper
   // handles single-comparator case and correctly rolls back on failure.
-  if(orbit->count != 1) return 0;
-  if(!network_add_cmp(net, layer_idx, orbit->first.left, orbit->first.right))
+  if (orbit->count != 1)
+    return 0;
+  if (!network_add_cmp(net, layer_idx, orbit->first.left, orbit->first.right))
     return 0;
   return 1;
 }
@@ -188,59 +192,71 @@ static void orbit_unplace(network_t *net, size layer_idx, size added)
 {
   layer_t *layer;
 
-  if(net == NULL || layer_idx >= net->layers || added == 0)
+  if (net == NULL || layer_idx >= net->layers || added == 0)
     return;
 
   layer = &net->layer[layer_idx];
-  if(layer->count >= added)
+  if (layer->count >= added)
     layer->count -= added;
 }
 
-static int strict_proof(const network_t *net){
+static int strict_proof(const network_t *net)
+{
   // Exhaustive zero-one proof for n<=20, else fallback to heuristic
-  if(net==NULL) return 0;
-  if(net->wires==0) return 1;
-  if(net->wires > 20) return network_proof(net); // for large n, rely on linked proof
+  if (net == NULL)
+    return 0;
+  if (net->wires == 0)
+    return 1;
+  if (net->wires > 20)
+    return network_proof(net); // for large n, rely on linked proof
   // Use proof_exp logic inline to avoid link dependency
   uint64_t limit = 1ULL << net->wires;
-  for(uint64_t mask=0; mask<limit; ++mask){
+  for (uint64_t mask = 0; mask < limit; ++mask)
+  {
     size *data = malloc(net->wires * sizeof *data);
-    if(!data) return 0;
-    for(size i=0;i<net->wires;++i) data[i]=(size)((mask>>i)&1u);
+    if (!data)
+      return 0;
+    for (size i = 0; i < net->wires; ++i)
+      data[i] = (size)((mask >> i) & 1u);
     int ok = network_sort(net, data);
     // is_sorted
-    int sorted=1;
-    for(size i=1;i<net->wires;++i) if(data[i-1] > data[i]) sorted=0;
+    int sorted = 1;
+    for (size i = 1; i < net->wires; ++i)
+      if (data[i - 1] > data[i])
+        sorted = 0;
     free(data);
-    if(!ok || !sorted) return 0;
+    if (!ok || !sorted)
+      return 0;
   }
   return 1;
 }
 
-static int search_orbits(size idx, const orbit_t *cand, size cand_count, network_t *work, uint64_t *masks)
+static int search_orbits(size idx, const orbit_t *cand, size cand_count, network_t *work,
+                         uint64_t *masks)
 {
   size layer;
 
-  if(network_proof(work) && strict_proof(work))
-    return 1; // require both heuristic and strict (if n<=20) // early success: current partial placement already sorts
+  if (network_proof(work) && strict_proof(work))
+    return 1; // require both heuristic and strict (if n<=20) // early success: current
+              // partial placement already sorts
 
-  if(idx >= cand_count)
+  if (idx >= cand_count)
     return 0;
 
-  if(cand[idx].count == 1)
+  if (cand[idx].count == 1)
   {
-    for(layer = 0; layer < work->layers; ++layer)
+    for (layer = 0; layer < work->layers; ++layer)
     {
       size added;
       uint64_t mask = bit_mask(cand[idx].first.left) | bit_mask(cand[idx].first.right);
 
-      if(masks[layer] & mask)
+      if (masks[layer] & mask)
         continue; // wire already occupied in this layer
       added = orbit_place(work, layer, &cand[idx]);
-      if(added == 0)
+      if (added == 0)
         continue;
       masks[layer] |= mask;
-      if(search_orbits(idx + 1, cand, cand_count, work, masks))
+      if (search_orbits(idx + 1, cand, cand_count, work, masks))
         return 1;
       masks[layer] &= ~mask;
       orbit_unplace(work, layer, added);
@@ -252,22 +268,22 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
     uint64_t mask1 = bit_mask(cand[idx].first.left) | bit_mask(cand[idx].first.right);
     uint64_t mask2 = bit_mask(cand[idx].second.left) | bit_mask(cand[idx].second.right);
 
-    for(layer = 0; layer < work->layers; ++layer)
+    for (layer = 0; layer < work->layers; ++layer)
     {
-      if(masks[layer] & mask1)
+      if (masks[layer] & mask1)
         continue;
-      if(!network_add_cmp(work, layer, cand[idx].first.left, cand[idx].first.right))
+      if (!network_add_cmp(work, layer, cand[idx].first.left, cand[idx].first.right))
         continue;
       masks[layer] |= mask1;
 
-      for(layer2 = 0; layer2 < work->layers; ++layer2)
+      for (layer2 = 0; layer2 < work->layers; ++layer2)
       {
-        if(masks[layer2] & mask2)
+        if (masks[layer2] & mask2)
           continue;
-        if(!network_add_cmp(work, layer2, cand[idx].second.left, cand[idx].second.right))
+        if (!network_add_cmp(work, layer2, cand[idx].second.left, cand[idx].second.right))
           continue;
         masks[layer2] |= mask2;
-        if(search_orbits(idx + 1, cand, cand_count, work, masks))
+        if (search_orbits(idx + 1, cand, cand_count, work, masks))
           return 1;
         masks[layer2] &= ~mask2;
         orbit_unplace(work, layer2, 1);
@@ -281,54 +297,56 @@ static int search_orbits(size idx, const orbit_t *cand, size cand_count, network
   return search_orbits(idx + 1, cand, cand_count, work, masks);
 }
 
-network_t *search_extension(const network_t *seed, size target_wires, size max_extra_layers)
+network_t *search_extension(const network_t *seed, size target_wires,
+                            size max_extra_layers)
 {
   size extra;
 
-  if(seed == NULL || target_wires <= seed->wires)
+  if (seed == NULL || target_wires <= seed->wires)
     return NULL;
-  if(target_wires > SORTER_MAX_WIRES)
+  if (target_wires > SORTER_MAX_WIRES)
   {
-    fprintf(stderr, "search limit exceeded: %u wires (max %d)\n", (unsigned)target_wires, SORTER_MAX_WIRES);
+    fprintf(stderr, "search limit exceeded: %u wires (max %d)\n", (unsigned)target_wires,
+            SORTER_MAX_WIRES);
     return NULL;
   }
 
-  for(extra = 0; extra <= max_extra_layers; ++extra)
+  for (extra = 0; extra <= max_extra_layers; ++extra)
   {
     size insert;
-    for(insert = 0; insert < target_wires; ++insert)
+    for (insert = 0; insert < target_wires; ++insert)
     {
       size layer_pos;
       network_t *base = network_clone(seed);
 
-      if(base == NULL)
+      if (base == NULL)
         return NULL;
-      if(!network_insert_wire(base, insert))
+      if (!network_insert_wire(base, insert))
       {
         network_free(base);
         return NULL;
       }
 
-      if(base->wires != target_wires)
+      if (base->wires != target_wires)
       {
         network_free(base);
         continue;
       }
 
-      for(layer_pos = 0; layer_pos <= (extra ? base->layers : 0); ++layer_pos)
+      for (layer_pos = 0; layer_pos <= (extra ? base->layers : 0); ++layer_pos)
       {
         network_t *work = network_clone(base);
         orbit_t *cand;
         size cand_count = 0;
         uint64_t *masks;
 
-        if(work == NULL)
+        if (work == NULL)
         {
           network_free(base);
           return NULL;
         }
 
-        if(extra && !network_insert_empty_layer(work, layer_pos))
+        if (extra && !network_insert_empty_layer(work, layer_pos))
         {
           network_free(work);
           network_free(base);
@@ -336,14 +354,14 @@ network_t *search_extension(const network_t *seed, size target_wires, size max_e
         }
 
         cand = build_orbits(work, insert, &cand_count);
-        if(cand == NULL && cand_count != 0)
+        if (cand == NULL && cand_count != 0)
         {
           network_free(work);
           network_free(base);
           return NULL;
         }
         masks = build_layer_masks(work);
-        if(masks == NULL)
+        if (masks == NULL)
         {
           free(cand);
           network_free(work);
@@ -355,11 +373,14 @@ network_t *search_extension(const network_t *seed, size target_wires, size max_e
                 (unsigned)insert, (unsigned)extra, (unsigned)(extra ? layer_pos : 0),
                 (unsigned)cand_count);
 
-        if(search_orbits(0, cand, cand_count, work, masks))
+        if (search_orbits(0, cand, cand_count, work, masks))
         {
-          if(!strict_proof(work)){
+          if (!strict_proof(work))
+          {
             fprintf(stderr, "candidate failed strict proof, continuing search\n");
-          } else {
+          }
+          else
+          {
             free(cand);
             free(masks);
             network_free(base);
@@ -384,15 +405,15 @@ int run_proof_cmd(size target_wires, int have_target)
   network_t *net = network_load(stdin);
   int ok;
 
-  if(net == NULL)
+  if (net == NULL)
   {
     fprintf(stderr, "cannot read network\n");
     return 1;
   }
 
-  if(have_target && target_wires != 0 && target_wires != net->wires)
+  if (have_target && target_wires != 0 && target_wires != net->wires)
   {
-    if(net->wires == 0 && target_wires != 0)
+    if (net->wires == 0 && target_wires != 0)
       net->wires = target_wires;
     else
       fprintf(stderr, "warning: input network has %u wires, requested %u\n",
@@ -410,19 +431,19 @@ int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
   network_t *seed = network_load(stdin);
   network_t *found;
 
-  if(seed == NULL)
+  if (seed == NULL)
   {
     fprintf(stderr, "cannot read seed network\n");
     return 1;
   }
 
-  if(!have_target)
+  if (!have_target)
     target_wires = seed->wires + 1;
-  if(target_wires <= seed->wires)
+  if (target_wires <= seed->wires)
     target_wires = seed->wires + 1;
-  if(seed->wires == 0 && target_wires > 0)
+  if (seed->wires == 0 && target_wires > 0)
     seed->wires = target_wires - 1;
-  if(max_extra_layers > 1)
+  if (max_extra_layers > 1)
   {
     fprintf(stderr, "extra layers capped at 1\n");
     max_extra_layers = 1;
@@ -431,20 +452,20 @@ int run_search_cmd(size target_wires, int have_target, size max_extra_layers)
   found = search_extension(seed, target_wires, max_extra_layers);
   network_free(seed);
 
-  if(found == NULL)
+  if (found == NULL)
   {
     fprintf(stderr, "no extension found\n");
     return 1;
   }
 
-  if(!strict_proof(found)){
-    fprintf(stderr,
-              "warning: found network failed strict proof (heuristic only)"
-              " - no valid extension\n");
+  if (!strict_proof(found))
+  {
+    fprintf(stderr, "warning: found network failed strict proof (heuristic only)"
+                    " - no valid extension\n");
     network_free(found);
     return 1;
   }
-  if(!network_write(stdout, found))
+  if (!network_write(stdout, found))
   {
     network_free(found);
     return 1;

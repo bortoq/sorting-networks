@@ -33,26 +33,38 @@
  *   7) Brick (odd-even transposition): any n, n layers periodic
  *   8) Green filter (1969): n=16 filter (4 layers) truncated/padded else
  *
- *   9) Zig-zag (Goodrich 2014): O(n log n) size, O(n log n) depth, epsilon-halver based (honest, large constants)
+ *   9) Zig-zag (Goodrich 2014): O(n log n) size, O(n log n) depth, epsilon-halver based
+ * (honest, large constants)
  *
  * Output format: one comparator "i j" per line, blank line between layers.
  * Refs: Batcher 1968 "Sorting Networks...", Van Voorhis 1971, Knuth 5.3.4
  */
-#include "gen_common.h"
 #include "gen.h"
+#include "gen_common.h"
 #include <string.h>
 
 int validate_network(const net_t *net, unsigned n)
 {
   // Check each layer is matching and wires < n
-  for(unsigned l=0;l<net->layers;++l){
-    unsigned char *used = calloc(n,1);
-    if(!used) die("calloc failed in validate");
-    for(unsigned k=0;k<net->layer[l].count;++k){
-      unsigned a=net->layer[l].pair[k].left, b=net->layer[l].pair[k].right;
-      if(a>=n || b>=n){ free(used); return 0; }
-      if(used[a] || used[b]){ free(used); return 0; }
-      used[a]=used[b]=1;
+  for (unsigned l = 0; l < net->layers; ++l)
+  {
+    unsigned char *used = calloc(n, 1);
+    if (!used)
+      die("calloc failed in validate");
+    for (unsigned k = 0; k < net->layer[l].count; ++k)
+    {
+      unsigned a = net->layer[l].pair[k].left, b = net->layer[l].pair[k].right;
+      if (a >= n || b >= n)
+      {
+        free(used);
+        return 0;
+      }
+      if (used[a] || used[b])
+      {
+        free(used);
+        return 0;
+      }
+      used[a] = used[b] = 1;
     }
     free(used);
   }
@@ -61,7 +73,11 @@ int validate_network(const net_t *net, unsigned n)
 
 static void usage(const char *argv0)
 {
-  fprintf(stderr, "usage: %s [--count|--validate] pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis|bose-nelson|bitonic|brick|green|zigzag n\n", argv0);
+  fprintf(stderr,
+          "usage: %s [--count|--validate] "
+          "pairwise|batcher-odd-even|pipelined-mergesort|van-voorhis|bose-nelson|bitonic|"
+          "brick|green|zigzag n\n",
+          argv0);
 }
 
 int main(int argc, char **argv)
@@ -72,20 +88,20 @@ int main(int argc, char **argv)
   int validate_only = 0;
   net_t net;
 
-  if(argc == 4 && strcmp(argv[1], "--count") == 0)
+  if (argc == 4 && strcmp(argv[1], "--count") == 0)
   {
     count_only = 1;
     ++argv;
     --argc;
   }
-  if(argc == 4 && strcmp(argv[1], "--validate") == 0)
+  if (argc == 4 && strcmp(argv[1], "--validate") == 0)
   {
     validate_only = 1;
     ++argv;
     --argc;
   }
 
-  if(argc != 3)
+  if (argc != 3)
   {
     usage(argv[0]);
     return 1;
@@ -94,23 +110,24 @@ int main(int argc, char **argv)
   algo = argv[1];
   n = (unsigned)strtoul(argv[2], NULL, 10);
 
-  if(strcmp(algo, "pairwise") == 0)
+  if (strcmp(algo, "pairwise") == 0)
     net = gen_pairwise(n);
-  else if(strcmp(algo, "batcher-odd-even") == 0 || strcmp(algo, "batcher") == 0)
+  else if (strcmp(algo, "batcher-odd-even") == 0 || strcmp(algo, "batcher") == 0)
     net = gen_batcher_odd_even(n);
-  else if(strcmp(algo, "pipelined-mergesort") == 0 || strcmp(algo, "pipeline-merge") == 0)
+  else if (strcmp(algo, "pipelined-mergesort") == 0 ||
+           strcmp(algo, "pipeline-merge") == 0)
     net = gen_pipelined_mergesort(n);
-  else if(strcmp(algo, "van-voorhis") == 0 || strcmp(algo, "vv") == 0)
+  else if (strcmp(algo, "van-voorhis") == 0 || strcmp(algo, "vv") == 0)
     net = gen_van_voorhis(n);
-  else if(strcmp(algo, "bose-nelson") == 0 || strcmp(algo, "bose") == 0)
+  else if (strcmp(algo, "bose-nelson") == 0 || strcmp(algo, "bose") == 0)
     net = gen_bose_nelson(n);
-  else if(strcmp(algo, "bitonic") == 0)
+  else if (strcmp(algo, "bitonic") == 0)
     net = gen_bitonic(n);
-  else if(strcmp(algo, "brick") == 0)
+  else if (strcmp(algo, "brick") == 0)
     net = gen_brick(n);
-  else if(strcmp(algo, "green") == 0)
+  else if (strcmp(algo, "green") == 0)
     net = gen_green(n);
-  else if(strcmp(algo, "zigzag") == 0 || strcmp(algo, "zig-zag") == 0)
+  else if (strcmp(algo, "zigzag") == 0 || strcmp(algo, "zig-zag") == 0)
     net = gen_zigzag(n);
   else
   {
@@ -118,13 +135,15 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  if(count_only)
+  if (count_only)
     printf("%llu %u\n", (unsigned long long)net_cmp_count(&net), net.layers);
-  else if(validate_only){
+  else if (validate_only)
+  {
     int ok = validate_network(&net, n);
-    printf("%s: %llu comps, %u layers, %s\n", algo, (unsigned long long)net_cmp_count(&net), net.layers, ok?"VALID":"INVALID");
+    printf("%s: %llu comps, %u layers, %s\n", algo,
+           (unsigned long long)net_cmp_count(&net), net.layers, ok ? "VALID" : "INVALID");
     net_free(&net);
-    return ok?0:2;
+    return ok ? 0 : 2;
   }
   else
     net_print(&net);

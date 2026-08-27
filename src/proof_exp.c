@@ -28,8 +28,8 @@ static int is_sorted(const size *data, size n)
 {
   size i;
 
-  for(i = 1; i < n; ++i)
-    if(data[i - 1] > data[i])
+  for (i = 1; i < n; ++i)
+    if (data[i - 1] > data[i])
       return 0;
   return 1;
 }
@@ -37,7 +37,7 @@ static int is_sorted(const size *data, size n)
 static int proof_mask(const network_t *net, uint64_t mask, size *data)
 {
   size i;
-  for(i = 0; i < net->wires; ++i)
+  for (i = 0; i < net->wires; ++i)
     data[i] = (size)((mask >> i) & 1u); // binary input from mask bit i
   return network_sort(net, data) && is_sorted(data, net->wires);
 }
@@ -47,33 +47,37 @@ int network_proof(const network_t *net)
   uint64_t limit;
   uint64_t mask;
 
-  if(net == NULL)
+  if (net == NULL)
     return 0;
 
-  if(net->wires == 0)
+  if (net->wires == 0)
     return 1;
 
   /*
    * Exhaustive zero-one proof.
    * Practical for small networks; the search code keeps the target small.
    */
-  if(net->wires > PROOF_MAX_WIRES || net->wires >= 64)
+  if (net->wires > PROOF_MAX_WIRES || net->wires >= 64)
   {
-    fprintf(stderr, "proof limit exceeded: %u wires (max %d)\n", (unsigned)net->wires, PROOF_MAX_WIRES);
+    fprintf(stderr, "proof limit exceeded: %u wires (max %d)\n", (unsigned)net->wires,
+            PROOF_MAX_WIRES);
     return 0;
   }
-  if(net->wires >= 32)
+  if (net->wires >= 32)
   {
     /* 2^n would overflow 64-bit, use iterative counter */
-    fprintf(stderr, "proof limit exceeded: %u wires too large for exhaustive check\n", (unsigned)net->wires);
+    fprintf(stderr, "proof limit exceeded: %u wires too large for exhaustive check\n",
+            (unsigned)net->wires);
     return 0;
   }
 
   limit = 1ULL << net->wires; // 2^n masks
   size *data = malloc(net->wires * sizeof *data);
-  if(data==NULL) return 0;
-  for(mask = 0; mask < limit; ++mask)
-    if(!proof_mask(net, mask, data)){
+  if (data == NULL)
+    return 0;
+  for (mask = 0; mask < limit; ++mask)
+    if (!proof_mask(net, mask, data))
+    {
       free(data);
       return 0; // found binary counterexample -> not sorting
     }

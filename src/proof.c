@@ -25,10 +25,10 @@ static size *array_generator(size n)
   size i;
   size *a = malloc(n * sizeof *a);
 
-  if(a == NULL)
+  if (a == NULL)
     return NULL;
 
-  for(i = 0; i < n; ++i)
+  for (i = 0; i < n; ++i)
     a[i] = n - i;
 
   return a;
@@ -41,8 +41,8 @@ static int is_ordered(size n, const size *a)
 {
   size i;
 
-  for(i = 1; i < n; ++i)
-    if(a[i - 1] > a[i])
+  for (i = 1; i < n; ++i)
+    if (a[i - 1] > a[i])
       return 0;
   return 1;
 }
@@ -55,11 +55,11 @@ static void shift_array(size n, size *a)
   size i;
   size tmp;
 
-  if(n == 0)
+  if (n == 0)
     return;
 
   tmp = a[n - 1];
-  for(i = n - 1; i > 0; --i)
+  for (i = n - 1; i > 0; --i)
     a[i] = a[i - 1];
   a[0] = tmp;
 }
@@ -81,21 +81,22 @@ int network_proof(const network_t *net)
   int ok = 1;
   size *a;
 
-  if(net == NULL)
+  if (net == NULL)
     return 0;
 
-  if(net->wires > SORTER_MAX_WIRES)
+  if (net->wires > SORTER_MAX_WIRES)
   {
-    fprintf(stderr, "warning: heuristic proof on %u wires (n > %d may be incomplete)\n", (unsigned)net->wires, SORTER_MAX_WIRES);
+    fprintf(stderr, "warning: heuristic proof on %u wires (n > %d may be incomplete)\n",
+            (unsigned)net->wires, SORTER_MAX_WIRES);
   }
   a = array_generator(net->wires);
-  if(a == NULL && net->wires != 0)
+  if (a == NULL && net->wires != 0)
     return 0;
 
-  for(i = 0; i < net->wires; ++i)
+  for (i = 0; i < net->wires; ++i)
   {
     ok = network_sort(net, a) && is_ordered(net->wires, a);
-    if(ok == 0)
+    if (ok == 0)
       break;
 
     shift_array(net->wires, a);

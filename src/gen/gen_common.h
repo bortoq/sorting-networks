@@ -3,10 +3,29 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-typedef struct { unsigned left; unsigned right; } pair_t;
-typedef struct { unsigned count; unsigned cap; pair_t *pair; } layer_t;
-typedef struct { unsigned layers; unsigned cap; layer_t *layer; } net_t;
-typedef struct { unsigned count; unsigned cap; pair_t *pair; } seq_t;
+typedef struct
+{
+  unsigned left;
+  unsigned right;
+} pair_t;
+typedef struct
+{
+  unsigned count;
+  unsigned cap;
+  pair_t *pair;
+} layer_t;
+typedef struct
+{
+  unsigned layers;
+  unsigned cap;
+  layer_t *layer;
+} net_t;
+typedef struct
+{
+  unsigned count;
+  unsigned cap;
+  pair_t *pair;
+} seq_t;
 void die(const char *msg);
 int is_power2(unsigned n);
 unsigned next_pow2(unsigned n);
@@ -33,7 +52,8 @@ net_t seq_pack_directed(const seq_t *seq, unsigned wires);
 int validate_network(const net_t *net, unsigned n);
 
 // Van Voorhis helpers (internal, exposed for gen_vanvoorhis)
-unsigned *map_subset(const unsigned *map, unsigned rows, unsigned cols, unsigned row_start, unsigned col_start);
+unsigned *map_subset(const unsigned *map, unsigned rows, unsigned cols,
+                     unsigned row_start, unsigned col_start);
 void gen_vv_h(seq_t *seq, const unsigned *map, unsigned rows, unsigned r);
 void gen_vv_delta(seq_t *seq, const unsigned *map, unsigned rows, unsigned r);
 void gen_vv_f_square(seq_t *seq, const unsigned *map, unsigned rows, unsigned r);

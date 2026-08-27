@@ -6,7 +6,7 @@ net_t gen_batcher_merge(unsigned lo, unsigned n, unsigned r)
   unsigned m = r * 2;
   net_t out = {0, 0, NULL};
 
-  if(m < n)
+  if (m < n)
   {
     net_t a = gen_batcher_merge(lo, n, m);
     net_t b = gen_batcher_merge(lo + r, n, m);
@@ -17,7 +17,7 @@ net_t gen_batcher_merge(unsigned lo, unsigned n, unsigned r)
     net_free(&p);
 
     net_ensure_layer(&out, out.layers);
-    for(i = lo + r; i + r < lo + n; i += m)
+    for (i = lo + r; i + r < lo + n; i += m)
       layer_add(&out.layer[out.layers - 1], i, i + r);
   }
   else
@@ -32,7 +32,7 @@ net_t gen_batcher_sort_rec(unsigned lo, unsigned n)
 {
   net_t out = {0, 0, NULL};
 
-  if(n <= 1)
+  if (n <= 1)
     return out;
 
   {
@@ -52,15 +52,20 @@ net_t gen_batcher_sort_rec(unsigned lo, unsigned n)
 
 net_t gen_batcher_odd_even(unsigned n)
 {
-  if(n==0 || n>65536) die("gen: n out of range 1..65536");
-  if(!is_power2(n)){
+  if (n == 0 || n > 65536)
+    die("gen: n out of range 1..65536");
+  if (!is_power2(n))
+  {
     unsigned padded = next_pow2(n);
     net_t pn = gen_batcher_sort_rec(0, padded);
-    seq_t f={0,0,NULL};
-    for(unsigned l=0;l<pn.layers;++l) for(unsigned k=0;k<pn.layer[l].count;++k){
-      unsigned a=pn.layer[l].pair[k].left, b=pn.layer[l].pair[k].right;
-      if(a < n && b < n) seq_add(&f,a,b);
-    }
+    seq_t f = {0, 0, NULL};
+    for (unsigned l = 0; l < pn.layers; ++l)
+      for (unsigned k = 0; k < pn.layer[l].count; ++k)
+      {
+        unsigned a = pn.layer[l].pair[k].left, b = pn.layer[l].pair[k].right;
+        if (a < n && b < n)
+          seq_add(&f, a, b);
+      }
     net_free(&pn);
     net_t out = seq_pack(&f, n);
     seq_free(&f);
@@ -68,4 +73,3 @@ net_t gen_batcher_odd_even(unsigned n)
   }
   return gen_batcher_sort_rec(0, n);
 }
-

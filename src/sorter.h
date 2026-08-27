@@ -18,23 +18,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SORTER_MAX_WIRES 64  /* search uses 64-bit masks */
-#define PROOF_MAX_WIRES 30   /* 2^n exhaustive */
+#define SORTER_MAX_WIRES 64 /* search uses 64-bit masks */
+#define PROOF_MAX_WIRES 30  /* 2^n exhaustive */
 
 typedef uint32_t size;
 
-typedef struct {
+typedef struct
+{
   size left;
   size right;
 } cmp_t;
 
-typedef struct {
+typedef struct
+{
   size count;
   size cap;
   cmp_t *pairs;
 } layer_t;
 
-typedef struct {
+typedef struct
+{
   size wires;
   size layers;
   size cap;
@@ -59,7 +62,8 @@ int network_write(FILE *out, const network_t *net);
 int network_sort(const network_t *net, size *data);
 int network_proof(const network_t *net);
 
-network_t *search_extension(const network_t *seed, size target_wires, size max_extra_layers);
+network_t *search_extension(const network_t *seed, size target_wires,
+                            size max_extra_layers);
 
 int run_proof_cmd(size target_wires, int have_target);
 int run_search_cmd(size target_wires, int have_target, size max_extra_layers);
@@ -69,11 +73,11 @@ int network_insert_empty_layer(network_t *net, size pos);
 uint64_t bit_mask(size pos);
 int cmp_pair(const cmp_t *a, const cmp_t *b);
 
-#define HELP \
-  "usage:\n" \
-  "  sorter proof [wires]          read network and prove it (strict proof: n < 20)\n" \
-  "  sorter search [wires] [extra] read seed network and search extension, extra is capped at 1\n" \
+#define HELP                                                                             \
+  "usage:\n"                                                                             \
+  "  sorter proof [wires]          read network and prove it (strict proof: n < 20)\n"   \
+  "  sorter search [wires] [extra] read seed network and search extension, extra is "    \
+  "capped at 1\n"                                                                        \
   "  limits: search supports n <= 64 (64-bit masks), proof_exp supports n < 20\n"
-
 
 #endif /* SORTER_H_ */

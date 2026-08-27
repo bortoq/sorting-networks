@@ -25,13 +25,13 @@
  * Refs: Knuth TAOCP 5.3.4, Batcher 1968
  */
 #include "sorter.h"
-#include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <string.h>
 
 static void layer_free(layer_t *layer)
 {
-  if(layer == NULL)
+  if (layer == NULL)
     return;
   free(layer->pairs);
   layer->pairs = NULL;
@@ -42,12 +42,12 @@ static void layer_free(layer_t *layer)
 static int layer_reserve(layer_t *layer, size cap)
 {
   cmp_t *pairs;
-  if(layer == NULL)
+  if (layer == NULL)
     return 0;
-  if(cap <= layer->cap)
+  if (cap <= layer->cap)
     return 1;
   pairs = realloc(layer->pairs, cap * sizeof *pairs);
-  if(pairs == NULL)
+  if (pairs == NULL)
     return 0;
   layer->pairs = pairs;
   layer->cap = cap;
@@ -57,13 +57,13 @@ static int layer_reserve(layer_t *layer, size cap)
 network_t *network_new(size wires, size layers)
 {
   network_t *net = calloc(1, sizeof *net);
-  if(net == NULL)
+  if (net == NULL)
     return NULL;
   net->wires = wires;
-  if(layers)
+  if (layers)
   {
     net->layer = calloc(layers, sizeof *net->layer);
-    if(net->layer == NULL)
+    if (net->layer == NULL)
     {
       free(net);
       return NULL;
@@ -77,19 +77,19 @@ network_t *network_clone(const network_t *src)
 {
   size i;
   network_t *dst;
-  if(src == NULL)
+  if (src == NULL)
     return NULL;
   dst = network_new(src->wires, src->cap);
-  if(dst == NULL)
+  if (dst == NULL)
     return NULL;
   dst->layers = src->layers;
-  for(i = 0; i < src->layers; ++i)
+  for (i = 0; i < src->layers; ++i)
   {
     const layer_t *sl = &src->layer[i];
     layer_t *dl = &dst->layer[i];
-    if(sl->count == 0)
+    if (sl->count == 0)
       continue;
-    if(!layer_reserve(dl, sl->count))
+    if (!layer_reserve(dl, sl->count))
     {
       network_free(dst);
       return NULL;
@@ -103,9 +103,9 @@ network_t *network_clone(const network_t *src)
 void network_free(network_t *net)
 {
   size i;
-  if(net == NULL)
+  if (net == NULL)
     return;
-  for(i = 0; i < net->cap; ++i)
+  for (i = 0; i < net->cap; ++i)
     layer_free(&net->layer[i]);
   free(net->layer);
   free(net);
@@ -115,14 +115,14 @@ int network_reserve_layers(network_t *net, size layers)
 {
   layer_t *layer;
   size i;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  if(layers <= net->cap)
+  if (layers <= net->cap)
     return 1;
   layer = realloc(net->layer, layers * sizeof *layer);
-  if(layer == NULL)
+  if (layer == NULL)
     return 0;
-  for(i = net->cap; i < layers; ++i)
+  for (i = net->cap; i < layers; ++i)
     memset(&layer[i], 0, sizeof layer[i]);
   net->layer = layer;
   net->cap = layers;
@@ -131,9 +131,9 @@ int network_reserve_layers(network_t *net, size layers)
 
 int network_append_layer(network_t *net)
 {
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  if(!network_reserve_layers(net, net->layers + 1))
+  if (!network_reserve_layers(net, net->layers + 1))
     return 0;
   memset(&net->layer[net->layers], 0, sizeof net->layer[net->layers]);
   ++net->layers;
@@ -143,13 +143,13 @@ int network_append_layer(network_t *net)
 int network_insert_empty_layer(network_t *net, size pos)
 {
   size i;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  if(pos > net->layers)
+  if (pos > net->layers)
     pos = net->layers;
-  if(!network_reserve_layers(net, net->layers + 1))
+  if (!network_reserve_layers(net, net->layers + 1))
     return 0;
-  for(i = net->layers; i > pos; --i)
+  for (i = net->layers; i > pos; --i)
     net->layer[i] = net->layer[i - 1];
   memset(&net->layer[pos], 0, sizeof net->layer[pos]);
   ++net->layers;
@@ -158,13 +158,13 @@ int network_insert_empty_layer(network_t *net, size pos)
 
 int cmp_pair(const cmp_t *a, const cmp_t *b)
 {
-  if(a->left < b->left)
+  if (a->left < b->left)
     return -1;
-  if(a->left > b->left)
+  if (a->left > b->left)
     return 1;
-  if(a->right < b->right)
+  if (a->right < b->right)
     return -1;
-  if(a->right > b->right)
+  if (a->right > b->right)
     return 1;
   return 0;
 }
@@ -172,7 +172,7 @@ int cmp_pair(const cmp_t *a, const cmp_t *b)
 uint64_t bit_mask(size index)
 {
   // 64-bit layer occupancy mask; n>64 returns 0 (guarded by caller)
-  if(index >= 64)
+  if (index >= 64)
     return 0;
   return 1ULL << index;
 }
@@ -180,15 +180,23 @@ uint64_t bit_mask(size index)
 int network_sort(const network_t *net, size *data)
 {
   size l, n;
-  if(net==NULL || data==NULL) return 0;
-  for(l=0;l<net->layers;++l){
-    const layer_t *layer=&net->layer[l];
-    for(n=0;n<layer->count;++n){
-      size left=layer->pairs[n].left, right=layer->pairs[n].right;
-      if(left >= net->wires || right >= net->wires) return 0;
-      if(left==right) continue;
-      if(data[left] > data[right]){
-        size tmp=data[left]; data[left]=data[right]; data[right]=tmp;
+  if (net == NULL || data == NULL)
+    return 0;
+  for (l = 0; l < net->layers; ++l)
+  {
+    const layer_t *layer = &net->layer[l];
+    for (n = 0; n < layer->count; ++n)
+    {
+      size left = layer->pairs[n].left, right = layer->pairs[n].right;
+      if (left >= net->wires || right >= net->wires)
+        return 0;
+      if (left == right)
+        continue;
+      if (data[left] > data[right])
+      {
+        size tmp = data[left];
+        data[left] = data[right];
+        data[right] = tmp;
       }
     }
   }
@@ -199,18 +207,18 @@ size network_max_wire(const network_t *net)
 {
   size i, j;
   size max = 0;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  for(i = 0; i < net->layers; ++i)
-    for(j = 0; j < net->layer[i].count; ++j)
+  for (i = 0; i < net->layers; ++i)
+    for (j = 0; j < net->layer[i].count; ++j)
     {
       const cmp_t *cmp = &net->layer[i].pairs[j];
-      if(cmp->left + 1 > max)
+      if (cmp->left + 1 > max)
         max = cmp->left + 1;
-      if(cmp->right + 1 > max)
+      if (cmp->right + 1 > max)
         max = cmp->right + 1;
     }
-  if(net->wires > max)
+  if (net->wires > max)
     max = net->wires;
   return max;
 }
@@ -219,9 +227,9 @@ int network_has_cmp(const network_t *net, size left, size right)
 {
   cmp_t needle;
   size i, j;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  if(left > right)
+  if (left > right)
   {
     size tmp = left;
     left = right;
@@ -229,9 +237,9 @@ int network_has_cmp(const network_t *net, size left, size right)
   }
   needle.left = left;
   needle.right = right;
-  for(i = 0; i < net->layers; ++i)
-    for(j = 0; j < net->layer[i].count; ++j)
-      if(cmp_pair(&needle, &net->layer[i].pairs[j]) == 0)
+  for (i = 0; i < net->layers; ++i)
+    for (j = 0; j < net->layer[i].count; ++j)
+      if (cmp_pair(&needle, &net->layer[i].pairs[j]) == 0)
         return 1;
   return 0;
 }
@@ -240,28 +248,30 @@ int network_add_cmp(network_t *net, size layer_idx, size left, size right)
 {
   layer_t *layer;
   size i;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  if(left == right)
+  if (left == right)
     return 1; // self-comparator is no-op, treat as success
-  while(net->layers <= layer_idx)
+  while (net->layers <= layer_idx)
   {
-    if(!network_append_layer(net))
+    if (!network_append_layer(net))
       return 0;
   }
   layer = &net->layer[layer_idx];
   // Enforce matching: reject if comparator shares a wire with this layer
-  for(i = 0; i < layer->count; ++i)
-    if(layer->pairs[i].left == left || layer->pairs[i].left == right || layer->pairs[i].right == left || layer->pairs[i].right == right)
+  for (i = 0; i < layer->count; ++i)
+    if (layer->pairs[i].left == left || layer->pairs[i].left == right ||
+        layer->pairs[i].right == left || layer->pairs[i].right == right)
       return 0; // wire already used in this layer
-  if(layer->count == layer->cap && !layer_reserve(layer, layer->cap ? layer->cap * 2 : 4))
+  if (layer->count == layer->cap &&
+      !layer_reserve(layer, layer->cap ? layer->cap * 2 : 4))
     return 0;
   layer->pairs[layer->count].left = left;
   layer->pairs[layer->count].right = right;
   ++layer->count;
-  if(right + 1 > net->wires)
+  if (right + 1 > net->wires)
     net->wires = right + 1;
-  if(left + 1 > net->wires)
+  if (left + 1 > net->wires)
     net->wires = left + 1;
   return 1;
 }
@@ -269,15 +279,15 @@ int network_add_cmp(network_t *net, size layer_idx, size left, size right)
 int network_insert_wire(network_t *net, size pos)
 {
   size i, j;
-  if(net == NULL)
+  if (net == NULL)
     return 0;
-  for(i = 0; i < net->layers; ++i)
-    for(j = 0; j < net->layer[i].count; ++j)
+  for (i = 0; i < net->layers; ++i)
+    for (j = 0; j < net->layer[i].count; ++j)
     {
       cmp_t *cmp = &net->layer[i].pairs[j];
-      if(cmp->left >= pos)
+      if (cmp->left >= pos)
         ++cmp->left;
-      if(cmp->right >= pos)
+      if (cmp->right >= pos)
         ++cmp->right;
     }
   ++net->wires; // inserted wire shifts existing comparators >= pos
@@ -292,13 +302,13 @@ static void network_print_cmp(FILE *out, const cmp_t *cmp)
 int network_write(FILE *out, const network_t *net)
 {
   size i, j;
-  if(out == NULL || net == NULL)
+  if (out == NULL || net == NULL)
     return 0;
-  for(i = 0; i < net->layers; ++i)
+  for (i = 0; i < net->layers; ++i)
   {
-    for(j = 0; j < net->layer[i].count; ++j)
+    for (j = 0; j < net->layer[i].count; ++j)
       network_print_cmp(out, &net->layer[i].pairs[j]);
-    if(i + 1 < net->layers)
+    if (i + 1 < net->layers)
       fputc('\n', out);
   }
   return 1;
@@ -308,10 +318,11 @@ static char *trim(char *line)
 {
   char *p = line;
   char *end;
-  while(*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+  while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
     ++p;
   end = p + strlen(p);
-  while(end > p && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r' || end[-1] == '\n'))
+  while (end > p &&
+         (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r' || end[-1] == '\n'))
     --end;
   *end = '\0';
   return p;
@@ -322,68 +333,74 @@ network_t *network_load(FILE *in)
   char line[256];
   network_t *net = network_new(0, 0);
   int active = 0;
-  if(net == NULL || in == NULL)
+  if (net == NULL || in == NULL)
   {
     network_free(net);
     return NULL;
   }
-  while(fgets(line, sizeof line, in) != NULL)
+  while (fgets(line, sizeof line, in) != NULL)
   {
     char *p = trim(line);
     char *end;
     long a_val, b_val;
-    if(*p == '\0' || *p == '#')
+    if (*p == '\0' || *p == '#')
     {
       active = 0;
       continue;
     }
     errno = 0;
     a_val = strtol(p, &end, 10);
-    if(end == p || errno == ERANGE || a_val < 0 || a_val > SORTER_MAX_WIRES){
+    if (end == p || errno == ERANGE || a_val < 0 || a_val > SORTER_MAX_WIRES)
+    {
       network_free(net);
       return NULL;
     }
-    while(*end==' '||*end=='\t') ++end;
+    while (*end == ' ' || *end == '\t')
+      ++end;
     char *b_start = end;
     b_val = strtol(b_start, &end, 10);
-    if(end == b_start || errno == ERANGE || b_val < 0 || b_val > SORTER_MAX_WIRES){
+    if (end == b_start || errno == ERANGE || b_val < 0 || b_val > SORTER_MAX_WIRES)
+    {
       network_free(net);
       return NULL;
     }
-    while(*end==' '||*end=='\t') ++end;
-    if(*end!='\0'){
+    while (*end == ' ' || *end == '\t')
+      ++end;
+    if (*end != '\0')
+    {
       network_free(net);
       return NULL;
     }
     unsigned a = (unsigned)a_val, b = (unsigned)b_val;
-    if(!active)
+    if (!active)
     {
       // blank line ended previous layer; start new layer
-      if(!network_append_layer(net))
+      if (!network_append_layer(net))
       {
         network_free(net);
         return NULL;
       }
       active = 1;
     }
-    if(!network_add_cmp(net, net->layers - 1, (size)a, (size)b))
+    if (!network_add_cmp(net, net->layers - 1, (size)a, (size)b))
     {
       network_free(net);
       return NULL;
     }
   }
-  if(net->layers==0){
+  if (net->layers == 0)
+  {
     network_free(net);
     return NULL;
   }
   // Reject networks with zero comparators (e.g. "0 0" or empty)
-  size tot=0;
-  for(size i=0;i<net->layers;++i) tot+=net->layer[i].count;
-  if(tot==0){
+  size tot = 0;
+  for (size i = 0; i < net->layers; ++i)
+    tot += net->layer[i].count;
+  if (tot == 0)
+  {
     network_free(net);
     return NULL;
   }
   return net;
 }
-
-
